@@ -2,10 +2,8 @@
 
 public class CreatorMovement : MonoBehaviour
 {
-	[SerializeField]
-	private float Speed = 1.0f;
-	[SerializeField]
-	private float RotationalSpeed = 1.0f;
+	[SerializeField] private float Speed = 1.0f;
+	[SerializeField] private float RotationalSpeed = 1.0f;
 
 	private void FixedUpdate()
 	{

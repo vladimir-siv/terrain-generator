@@ -2,8 +2,8 @@
 
 public class TerrainCreatorController : MonoBehaviour
 {
-	[SerializeField]
-	private float Radius = 1.0f;
+	[SerializeField] private float Granularity = 0.1f;
+	[SerializeField] private float BrushRadius = 1.0f;
 
 	private BoxCollider Collider { get; set; }
 
