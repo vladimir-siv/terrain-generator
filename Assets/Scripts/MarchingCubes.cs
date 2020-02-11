@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Algorithms
+using Random = UnityEngine.Random;
+
+namespace TerrainGenerator
 {
 	public static class MarchingCubes
 	{
-		public static readonly ushort[] Edges = new ushort[256]
+		private static readonly ushort[] Edges = new ushort[256]
 		{
 			0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
 			0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
@@ -44,7 +42,7 @@ namespace Algorithms
 			0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0
 		};
 
-		public static readonly byte[][] Triangles = new byte[256][]
+		private static readonly byte[][] Triangles = new byte[256][]
 		{
 			new byte[] { },
 			new byte[] { 0, 8, 3 },
