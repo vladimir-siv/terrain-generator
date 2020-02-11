@@ -5,44 +5,48 @@ using Terrain = TerrainGenerator.Terrain;
 
 public class TerrainCreatorController : MonoBehaviour
 {
-	[SerializeField] private float Granularity = 0.1f;
-
 	private BoxCollider TerrainCollider { get; set; }
+	private float TerrainGranularity { get; set; }
 
 	private Terrain ObservedTerrain { get; set; }
-	private float[] OutputValues { get; set; }
+	private float[] TargetValues { get; set; }
 
 	private GameObject Brush { get; set; }
 	private Material BrushMaterial { get; set; }
-	private float BrushRadius { get; set; } = 1.0f;
-	private float BrushZCorretion { get; set; } = 0.0f;
+	private float BrushRadius { get; set; }
+	private float BrushZCorretion { get; set; }
 
 	private void Start()
 	{
-		Brush = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-		Brush.name = "CursorSphere";
-		Destroy(Brush.GetComponent<SphereCollider>());
-		BrushMaterial = Brush.GetComponent<MeshRenderer>().material;
-		BrushMaterial.shader = Shader.Find("Unlit/ColorBlend");
-
 		TerrainCollider = GetComponent<BoxCollider>();
+		TerrainGranularity = 100.0f;
 		ObservedTerrain = new Terrain();
-
+		
 		// Create dynamically
 		ObservedTerrain.GenerateFlat();
 		ObservedTerrain.SetTargets
 		(
 			new List<Vector3>()
 			{
-				new Vector3(-10.0f, 10.0f, 15.0f),
-				new Vector3(11.0f, -11.0f, 14.0f),
-				new Vector3(12.0f, -12.0f, 13.0f),
-				new Vector3(13.0f, -13.0f, 12.0f)
+				new Vector3(1.0f, 3.0f, 2.0f),
+				new Vector3(7.0f, 9.0f, 5.0f),
+				new Vector3(8.0f, 8.0f, 5.0f),
+				new Vector3(9.0f, 7.0f, 5.0f),
 			}
 		);
-		OutputValues = new float[4];
+		TargetValues = new float[4];
+		ObservedTerrain.UpdateTerrain(new Vector3(1.0f, 3.0f, 2.0f), 0.01f, +25.0f);
+		ObservedTerrain.Calculate();
+		ObservedTerrain.GetTargetValues(TargetValues);
+		foreach (var val in TargetValues) Debug.Log(val);
 
-		ObservedTerrain.UpdateTerrain(new Vector3(-10.0f, 10.0f, 15.0f), 0.01f, +25.0f);
+		Brush = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+		Brush.name = "CursorSphere";
+		Destroy(Brush.GetComponent<SphereCollider>());
+		BrushMaterial = Brush.GetComponent<MeshRenderer>().material;
+		BrushMaterial.shader = Shader.Find("Unlit/ColorBlend");
+		BrushRadius = 1.0f;
+		BrushZCorretion = 0.0f;
 	}
 
 	private void Update()
@@ -73,7 +77,8 @@ public class TerrainCreatorController : MonoBehaviour
 
 			if (build ^ clear)
 			{
-				//ObservedTerrain.Calculate(OutputValues);
+				if (build) ObservedTerrain.UpdateTerrain(center, BrushRadius, +0.01f);
+				if (clear) ObservedTerrain.UpdateTerrain(center, BrushRadius, -0.01f);
 			}
 		}
 

@@ -16,36 +16,41 @@ namespace TerrainGenerator
 		private ComputeBuffer Targets = null;
 		private ComputeBuffer TargetValues = null;
 
+		public float Step { get; private set; } = 0.1f;
+		public float Scale { get; private set; } = 10.0f;
 		public float Min { get; private set; } = -20.0f;
 		public float Max { get; private set; } = +20.0f;
-		public float Step { get; private set; } = 0.1f;
-		public int Size => (int)Math.Ceiling((Max - Min) / Step);
+		public int Size => (int)Math.Ceiling(Scale / Step);
 
-		public void GenerateRandom() => GenerateRandom(Min, Max, Step);
-		public void GenerateRandom(float range) => GenerateRandom(range, Step);
-		public void GenerateRandom(float range, float step) => GenerateRandom(-range / 2.0f, +range / 2.0f, step);
-		public void GenerateRandom(float min, float max, float step) => Generate(min, max, step, null);
+		public void GenerateRandom() => GenerateRandom(Step, Scale, Min, Max);
+		public void GenerateRandom(float step) => GenerateRandom(step, Scale, Min, Max);
+		public void GenerateRandom(float step, float scale) => GenerateRandom(step, scale, Min, Max);
+		public void GenerateRandom(float step, float scale, float range) => GenerateRandom(step, scale, -range / 2.0f, +range / 2.0f);
+		public void GenerateRandom(float step, float scale, float min, float max) => Generate(step, scale, min, max, null);
 
-		public void GenerateFlat() => GenerateFlat(Min, Max, Step, Min);
-		public void GenerateFlat(float range) => GenerateFlat(range, Step);
-		public void GenerateFlat(float range, float step) => GenerateFlat(range, step, -range / 2.0f);
-		public void GenerateFlat(float range, float step, float initial) => GenerateFlat(-range / 2.0f, +range / 2.0f, step, initial);
-		public void GenerateFlat(float min, float max, float step, float initial) => Generate(min, max, step, initial);
+		public void GenerateFlat() => GenerateFlat(Step, Scale, Min, Max, Min);
+		public void GenerateFlat(float step) => GenerateFlat(step, Scale, Min, Max, Min);
+		public void GenerateFlat(float step, float scale) => GenerateFlat(step, scale, Min, Max, Min);
+		public void GenerateFlat(float step, float scale, float range) => GenerateFlat(step, scale, -range / 2.0f, +range / 2.0f, -range / 2.0f);
+		public void GenerateFlat(float step, float scale, float range, float initial) => GenerateFlat(step, scale, -range / 2.0f, +range / 2.0f, initial);
+		public void GenerateFlat(float step, float scale, float min, float max, float initial) => Generate(step, scale, min, max, initial);
 
-		public void Generate(float min, float max, float step, float? initial)
+		public void Generate(float step, float scale, float min, float max, float? initial)
 		{
 			lock (Sync)
 			{
+				if (step <= 0.0f) throw new ArgumentException(nameof(step));
+				if (scale <= 0.0f) throw new ArgumentException(nameof(scale));
 				if (min >= 0.0f) throw new ArgumentException(nameof(step));
 				if (max <= 0.0f) throw new ArgumentException(nameof(step));
-				if (step <= 0.0f) throw new ArgumentException(nameof(step));
 				if (initial != null && initial < min || max < initial) throw new ArgumentException(nameof(step));
 
+				Step = step;
+				Scale = scale;
 				Min = min;
 				Max = max;
-				Step = step;
 
-				var size1 = (int)Math.Ceiling((Max - Min) / Step);
+				var size1 = Size;
 				var size2 = size1 * size1;
 				var size3 = size2 * size1;
 
@@ -79,9 +84,10 @@ namespace TerrainGenerator
 					var main = TerrainAdjustor.FindKernel("main");
 
 					TerrainAdjustor.SetBuffer(main, "_values", Values);
+					TerrainAdjustor.SetFloat("_step", Step);
+					TerrainAdjustor.SetFloat("_scale", Scale);
 					TerrainAdjustor.SetFloat("_min", Min);
 					TerrainAdjustor.SetFloat("_max", Max);
-					TerrainAdjustor.SetFloat("_step", Step);
 
 					TerrainAdjustor.SetVector("_center", center);
 					TerrainAdjustor.SetFloat("_radius", radius);
@@ -120,9 +126,10 @@ namespace TerrainGenerator
 					var main = TrilinearInterpolator.FindKernel("main");
 
 					TrilinearInterpolator.SetBuffer(main, "_values", Values);
+					TrilinearInterpolator.SetFloat("_step", Step);
+					TrilinearInterpolator.SetFloat("_scale", Scale);
 					TrilinearInterpolator.SetFloat("_min", Min);
 					TrilinearInterpolator.SetFloat("_max", Max);
-					TrilinearInterpolator.SetFloat("_step", Step);
 					TrilinearInterpolator.SetFloat("_target_count", Targets.count);
 					TrilinearInterpolator.SetBuffer(main, "_targets", Targets);
 					TrilinearInterpolator.SetBuffer(main, "_target_values", TargetValues);

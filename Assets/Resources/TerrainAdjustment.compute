@@ -2,21 +2,22 @@
 
 RWStructuredBuffer<float> _values;
 
+float _step;
+float _scale;
 float _min;
 float _max;
-float _step;
 
 float3 _center;
 float _radius;
 float _delta;
 
-uint coord_to_index(float v) { return (uint)((v - _min) / _step); }
-float index_to_coord(uint i) { return i * _step + _min; }
+uint coord_to_index(float v) { return (uint)(v / _step); }
+float index_to_coord(uint i) { return i * _step; }
 
 [numthreads(1, 1, 1)]
 void main(uint3 id: SV_DispatchThreadID)
 {
-	uint size1 = (uint)ceil((_max - _min) / _step);
+	uint size1 = (uint)ceil(_scale / _step);
 	uint size2 = size1 * size1;
 	uint size3 = size2 * size1;
 
