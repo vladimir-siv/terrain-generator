@@ -1,0 +1,31 @@
+﻿#pragma kernel main
+
+RWStructuredBuffer<float> values;
+
+float min;
+float max;
+float step;
+
+float3 center;
+float radius;
+float delta;
+
+uint coord_to_index(float v) { return (uint)((v - min) / step); }
+float index_to_coord(uint i) { return i * step + min; }
+
+[numthreads(1,1,1)]
+void main(uint3 id: SV_DispatchThreadID)
+{
+	uint size1 = (uint)ceil((max - min) / step);
+	uint size2 = size1 * size1;
+	uint size3 = size2 * size1;
+
+	uint i = id.x;
+	uint j = id.y;
+	uint k = id.z;
+
+	float3 coord = float3(index_to_coord(i), index_to_coord(j), index_to_coord(k));
+
+	float factor = floor(1.0f - saturate(distance(coord, center) - radius));
+	values[i * size2 + j * size1 + k] += factor * delta;
+}

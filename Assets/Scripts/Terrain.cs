@@ -8,6 +8,7 @@ namespace TerrainGenerator
 	public sealed class Terrain : IDisposable
 	{
 		private static ComputeShader TrilinearInterpolator = Resources.Load<ComputeShader>("TrilinearInterpolation");
+		private static ComputeShader TerrainAdjustor = Resources.Load<ComputeShader>("TerrainAdjustment");
 
 		private object Sync = new object();
 
@@ -18,6 +19,7 @@ namespace TerrainGenerator
 		public float Min { get; private set; } = -20.0f;
 		public float Max { get; private set; } = +20.0f;
 		public float Step { get; private set; } = 0.1f;
+		public int Size => (int)Math.Ceiling((Max - Min) / Step);
 
 		public void GenerateRandom() => GenerateRandom(Min, Max, Step);
 		public void GenerateRandom(float range) => GenerateRandom(range, Step);
@@ -56,13 +58,38 @@ namespace TerrainGenerator
 							initial_values.Add(initial ?? Random.Range(min, max));
 
 				Values?.Release();
-				Values = new ComputeBuffer(initial_values.Count, sizeof(float), ComputeBufferType.Default);
+				Values = new ComputeBuffer(initial_values.Count, sizeof(float));
 				Values.SetData(initial_values);
 
 				Targets?.Release();
 				Targets = null;
 				Outputs?.Release();
 				Outputs = null;
+			}
+		}
+
+		public void UpdateTerrain(Vector3 center, float radius, float delta)
+		{
+			lock (Sync)
+			{
+				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
+
+				lock (TerrainAdjustor)
+				{
+					var main = TerrainAdjustor.FindKernel("main");
+
+					TerrainAdjustor.SetBuffer(main, "values", Values);
+					TerrainAdjustor.SetFloat("min", Min);
+					TerrainAdjustor.SetFloat("max", Max);
+					TerrainAdjustor.SetFloat("step", Step);
+
+					TerrainAdjustor.SetVector("center", center);
+					TerrainAdjustor.SetFloat("radius", radius);
+					TerrainAdjustor.SetFloat("delta", delta);
+
+					var size = Size;
+					TerrainAdjustor.Dispatch(main, size, size, size);
+				}
 			}
 		}
 
@@ -75,10 +102,10 @@ namespace TerrainGenerator
 				Targets?.Release();
 				Outputs?.Release();
 
-				Targets = new ComputeBuffer(targets.Count, 3 * sizeof(float), ComputeBufferType.Default);
+				Targets = new ComputeBuffer(targets.Count, 3 * sizeof(float));
 				Targets.SetData(targets);
 
-				Outputs = new ComputeBuffer(targets.Count, sizeof(float), ComputeBufferType.Default);
+				Outputs = new ComputeBuffer(targets.Count, sizeof(float));
 			}
 		}
 
