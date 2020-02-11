@@ -1,44 +1,40 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using UnityEngine;
-
 using Terrain = TerrainGenerator.Terrain;
 
 public class TerrainCreatorController : MonoBehaviour
 {
-	private BoxCollider TerrainCollider { get; set; }
-	private float TerrainGranularity { get; set; }
+	[SerializeField] private float TerrainStep = 0.1f;
+	[SerializeField] private float TerrainScale = 10.0f;
 
 	private Terrain ObservedTerrain { get; set; }
-	private float[] TargetValues { get; set; }
+	private BoxCollider TerrainCollider { get; set; }
+	private int TerrainGranularity { get; set; }
 
 	private GameObject Brush { get; set; }
 	private Material BrushMaterial { get; set; }
 	private float BrushRadius { get; set; }
 	private float BrushZCorretion { get; set; }
 
+	private void GenerateTerrain(int granularity, bool flat = true)
+	{
+		if (granularity <= 0) throw new ArgumentException(nameof(granularity));
+
+		if (flat) ObservedTerrain.GenerateFlat(TerrainStep, TerrainScale);
+		else ObservedTerrain.GenerateRandom(TerrainStep, TerrainScale);
+
+		TerrainGranularity = granularity;
+		ObservedTerrain.SetGridTargets(granularity);
+	}
+
 	private void Start()
 	{
-		TerrainCollider = GetComponent<BoxCollider>();
-		TerrainGranularity = 100.0f;
 		ObservedTerrain = new Terrain();
-		
-		// Create dynamically
-		ObservedTerrain.GenerateFlat();
-		ObservedTerrain.SetTargets
-		(
-			new List<Vector3>()
-			{
-				new Vector3(1.0f, 3.0f, 2.0f),
-				new Vector3(7.0f, 9.0f, 5.0f),
-				new Vector3(8.0f, 8.0f, 5.0f),
-				new Vector3(9.0f, 7.0f, 5.0f),
-			}
-		);
-		TargetValues = new float[4];
-		ObservedTerrain.UpdateTerrain(new Vector3(1.0f, 3.0f, 2.0f), 0.01f, +25.0f);
-		ObservedTerrain.Calculate();
-		ObservedTerrain.GetTargetValues(TargetValues);
-		foreach (var val in TargetValues) Debug.Log(val);
+		TerrainCollider = GetComponent<BoxCollider>();
+		GenerateTerrain(32);
+
+		transform.position = new Vector3(ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f);
+		transform.localScale = new Vector3(ObservedTerrain.Scale, ObservedTerrain.Scale, ObservedTerrain.Scale);
 
 		Brush = GameObject.CreatePrimitive(PrimitiveType.Sphere);
 		Brush.name = "CursorSphere";

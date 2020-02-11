@@ -47,14 +47,14 @@ void main(uint3 id: SV_DispatchThreadID)
 	float yd = (y - y0) / (y1 - y0);
 	float zd = (z - z0) / (z1 - z0);
 
-	float v000 = _values[i0 * size2 + j0 * size1 + k0];
-	float v001 = _values[i0 * size2 + j0 * size1 + k1];
-	float v010 = _values[i0 * size2 + j1 * size1 + k0];
-	float v011 = _values[i0 * size2 + j1 * size1 + k1];
-	float v100 = _values[i1 * size2 + j0 * size1 + k0];
-	float v101 = _values[i1 * size2 + j0 * size1 + k1];
-	float v110 = _values[i1 * size2 + j1 * size1 + k0];
-	float v111 = _values[i1 * size2 + j1 * size1 + k1];
+	float v000 = _values[min(i0 * size2 + j0 * size1 + k0, size3 - 1)];
+	float v001 = _values[min(i0 * size2 + j0 * size1 + k1, size3 - 1)];
+	float v010 = _values[min(i0 * size2 + j1 * size1 + k0, size3 - 1)];
+	float v011 = _values[min(i0 * size2 + j1 * size1 + k1, size3 - 1)];
+	float v100 = _values[min(i1 * size2 + j0 * size1 + k0, size3 - 1)];
+	float v101 = _values[min(i1 * size2 + j0 * size1 + k1, size3 - 1)];
+	float v110 = _values[min(i1 * size2 + j1 * size1 + k0, size3 - 1)];
+	float v111 = _values[min(i1 * size2 + j1 * size1 + k1, size3 - 1)];
 
 	float v00 = v000 * (1.0f - xd) + v100 * xd;
 	float v01 = v001 * (1.0f - xd) + v101 * xd;

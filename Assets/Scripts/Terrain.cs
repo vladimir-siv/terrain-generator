@@ -7,10 +7,11 @@ namespace TerrainGenerator
 {
 	public sealed class Terrain : IDisposable
 	{
-		private static ComputeShader TrilinearInterpolator = Resources.Load<ComputeShader>("TrilinearInterpolation");
-		private static ComputeShader TerrainAdjustor = Resources.Load<ComputeShader>("TerrainAdjustment");
+		private static readonly ComputeShader TrilinearInterpolator = Resources.Load<ComputeShader>("TrilinearInterpolation");
+		private static readonly ComputeShader TerrainAdjustor = Resources.Load<ComputeShader>("TerrainAdjustment");
+		private static readonly ComputeShader Gridificator = Resources.Load<ComputeShader>("Gridification");
 
-		private object Sync = new object();
+		private readonly object Sync = new object();
 
 		private ComputeBuffer Values = null;
 		private ComputeBuffer Targets = null;
@@ -115,6 +116,35 @@ namespace TerrainGenerator
 			}
 		}
 
+		public void SetGridTargets(int granularity)
+		{
+			lock (Sync)
+			{
+				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
+				if (granularity <= 0) throw new ArgumentException("Granularity cannot be less than 0.");
+
+				Targets?.Release();
+				TargetValues?.Release();
+
+				++granularity;
+				int count = granularity * granularity * granularity;
+
+				Targets = new ComputeBuffer(count, 3 * sizeof(float));
+
+				TargetValues = new ComputeBuffer(count, sizeof(float));
+
+				lock (Gridificator)
+				{
+					var main = Gridificator.FindKernel("main");
+
+					Gridificator.SetBuffer(main, "_targets", Targets);
+					Gridificator.SetInt("_granularity", granularity);
+					Gridificator.SetFloat("_scale", Scale);
+					Gridificator.Dispatch(main, granularity, granularity, granularity);
+				}
+			}
+		}
+
 		public void Calculate()
 		{
 			lock (Sync)
@@ -130,7 +160,7 @@ namespace TerrainGenerator
 					TrilinearInterpolator.SetFloat("_scale", Scale);
 					TrilinearInterpolator.SetFloat("_min", Min);
 					TrilinearInterpolator.SetFloat("_max", Max);
-					TrilinearInterpolator.SetFloat("_target_count", Targets.count);
+					TrilinearInterpolator.SetInt("_target_count", Targets.count);
 					TrilinearInterpolator.SetBuffer(main, "_targets", Targets);
 					TrilinearInterpolator.SetBuffer(main, "_target_values", TargetValues);
 

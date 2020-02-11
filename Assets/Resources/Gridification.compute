@@ -1,0 +1,22 @@
+﻿#pragma kernel main
+
+RWStructuredBuffer<float3> _targets;
+
+uint _granularity;
+float _scale;
+
+[numthreads(1, 1, 1)]
+void main(uint3 id: SV_DispatchThreadID)
+{
+	uint size1 = _granularity;
+	uint size2 = size1 * size1;
+	uint size3 = size2 * size1;
+
+	uint i = id.x;
+	uint j = id.y;
+	uint k = id.z;
+
+	float step = _scale / (_granularity - 1);
+
+	_targets[i * size2 + j * size1 + k] = float3(i * step, j * step, k * step);
+}
