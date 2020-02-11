@@ -78,14 +78,14 @@ namespace TerrainGenerator
 				{
 					var main = TerrainAdjustor.FindKernel("main");
 
-					TerrainAdjustor.SetBuffer(main, "values", Values);
-					TerrainAdjustor.SetFloat("min", Min);
-					TerrainAdjustor.SetFloat("max", Max);
-					TerrainAdjustor.SetFloat("step", Step);
+					TerrainAdjustor.SetBuffer(main, "_values", Values);
+					TerrainAdjustor.SetFloat("_min", Min);
+					TerrainAdjustor.SetFloat("_max", Max);
+					TerrainAdjustor.SetFloat("_step", Step);
 
-					TerrainAdjustor.SetVector("center", center);
-					TerrainAdjustor.SetFloat("radius", radius);
-					TerrainAdjustor.SetFloat("delta", delta);
+					TerrainAdjustor.SetVector("_center", center);
+					TerrainAdjustor.SetFloat("_radius", radius);
+					TerrainAdjustor.SetFloat("_delta", delta);
 
 					var size = Size;
 					TerrainAdjustor.Dispatch(main, size, size, size);
@@ -121,13 +121,13 @@ namespace TerrainGenerator
 				{
 					var main = TrilinearInterpolator.FindKernel("main");
 
-					TrilinearInterpolator.SetBuffer(main, "values", Values);
-					TrilinearInterpolator.SetFloat("min", Min);
-					TrilinearInterpolator.SetFloat("max", Max);
-					TrilinearInterpolator.SetFloat("step", Step);
-					TrilinearInterpolator.SetFloat("target_count", Targets.count);
-					TrilinearInterpolator.SetBuffer(main, "targets", Targets);
-					TrilinearInterpolator.SetBuffer(main, "outputs", Outputs);
+					TrilinearInterpolator.SetBuffer(main, "_values", Values);
+					TrilinearInterpolator.SetFloat("_min", Min);
+					TrilinearInterpolator.SetFloat("_max", Max);
+					TrilinearInterpolator.SetFloat("_step", Step);
+					TrilinearInterpolator.SetFloat("_target_count", Targets.count);
+					TrilinearInterpolator.SetBuffer(main, "_targets", Targets);
+					TrilinearInterpolator.SetBuffer(main, "_outputs", Outputs);
 
 					TrilinearInterpolator.Dispatch(main, Targets.count, 1, 1);
 

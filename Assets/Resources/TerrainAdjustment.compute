@@ -1,22 +1,22 @@
 ﻿#pragma kernel main
 
-RWStructuredBuffer<float> values;
+RWStructuredBuffer<float> _values;
 
-float min;
-float max;
-float step;
+float _min;
+float _max;
+float _step;
 
-float3 center;
-float radius;
-float delta;
+float3 _center;
+float _radius;
+float _delta;
 
-uint coord_to_index(float v) { return (uint)((v - min) / step); }
-float index_to_coord(uint i) { return i * step + min; }
+uint coord_to_index(float v) { return (uint)((v - _min) / _step); }
+float index_to_coord(uint i) { return i * _step + _min; }
 
-[numthreads(1,1,1)]
+[numthreads(1, 1, 1)]
 void main(uint3 id: SV_DispatchThreadID)
 {
-	uint size1 = (uint)ceil((max - min) / step);
+	uint size1 = (uint)ceil((_max - _min) / _step);
 	uint size2 = size1 * size1;
 	uint size3 = size2 * size1;
 
@@ -26,6 +26,10 @@ void main(uint3 id: SV_DispatchThreadID)
 
 	float3 coord = float3(index_to_coord(i), index_to_coord(j), index_to_coord(k));
 
-	float factor = floor(1.0f - saturate(distance(coord, center) - radius));
-	values[i * size2 + j * size1 + k] += factor * delta;
+	float factor = floor(1.0f - saturate(distance(coord, _center) - _radius));
+
+	uint index = i * size2 + j * size1 + k;
+	_values[index] += factor * _delta;
+	_values[index] = max(_values[index], _min);
+	_values[index] = min(_values[index], _max);
 }

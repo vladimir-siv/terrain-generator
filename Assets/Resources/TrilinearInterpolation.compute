@@ -1,26 +1,26 @@
 ﻿#pragma kernel main
 
-RWStructuredBuffer<float> values;
+RWStructuredBuffer<float> _values;
 
-float min;
-float max;
-float step;
+float _min;
+float _max;
+float _step;
 
-uint target_count;
-RWStructuredBuffer<float3> targets;
-RWStructuredBuffer<float> outputs;
+uint _target_count;
+RWStructuredBuffer<float3> _targets;
+RWStructuredBuffer<float> _outputs;
 
-uint coord_to_index(float v) { return (uint)((v - min) / step); }
-float index_to_coord(uint i) { return i * step + min; }
+uint coord_to_index(float v) { return (uint)((v - _min) / _step); }
+float index_to_coord(uint i) { return i * _step + _min; }
 
 [numthreads(1, 1, 1)]
 void main(uint3 id: SV_DispatchThreadID)
 {
-	uint size1 = (uint)ceil((max - min) / step);
+	uint size1 = (uint)ceil((_max - _min) / _step);
 	uint size2 = size1 * size1;
 	uint size3 = size2 * size1;
 
-	float3 target = targets[id.x];
+	float3 target = _targets[id.x];
 
 	float x = target.x;
 	float y = target.y;
@@ -46,14 +46,14 @@ void main(uint3 id: SV_DispatchThreadID)
 	float yd = (y - y0) / (y1 - y0);
 	float zd = (z - z0) / (z1 - z0);
 
-	float v000 = values[i0 * size2 + j0 * size1 + k0];
-	float v001 = values[i0 * size2 + j0 * size1 + k1];
-	float v010 = values[i0 * size2 + j1 * size1 + k0];
-	float v011 = values[i0 * size2 + j1 * size1 + k1];
-	float v100 = values[i1 * size2 + j0 * size1 + k0];
-	float v101 = values[i1 * size2 + j0 * size1 + k1];
-	float v110 = values[i1 * size2 + j1 * size1 + k0];
-	float v111 = values[i1 * size2 + j1 * size1 + k1];
+	float v000 = _values[i0 * size2 + j0 * size1 + k0];
+	float v001 = _values[i0 * size2 + j0 * size1 + k1];
+	float v010 = _values[i0 * size2 + j1 * size1 + k0];
+	float v011 = _values[i0 * size2 + j1 * size1 + k1];
+	float v100 = _values[i1 * size2 + j0 * size1 + k0];
+	float v101 = _values[i1 * size2 + j0 * size1 + k1];
+	float v110 = _values[i1 * size2 + j1 * size1 + k0];
+	float v111 = _values[i1 * size2 + j1 * size1 + k1];
 
 	float v00 = v000 * (1.0f - xd) + v100 * xd;
 	float v01 = v001 * (1.0f - xd) + v101 * xd;
@@ -65,5 +65,5 @@ void main(uint3 id: SV_DispatchThreadID)
 
 	float v = v0 * (1.0f - zd) + v1 * zd;
 
-	outputs[id.x] = v;
+	_outputs[id.x] = v;
 }
