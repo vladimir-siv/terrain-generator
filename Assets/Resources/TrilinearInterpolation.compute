@@ -8,7 +8,7 @@ float _step;
 
 uint _target_count;
 RWStructuredBuffer<float3> _targets;
-RWStructuredBuffer<float> _outputs;
+RWStructuredBuffer<float> _target_values;
 
 uint coord_to_index(float v) { return (uint)((v - _min) / _step); }
 float index_to_coord(uint i) { return i * _step + _min; }
@@ -65,5 +65,5 @@ void main(uint3 id: SV_DispatchThreadID)
 
 	float v = v0 * (1.0f - zd) + v1 * zd;
 
-	_outputs[id.x] = v;
+	_target_values[id.x] = v;
 }

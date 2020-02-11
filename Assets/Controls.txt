@@ -1,0 +1,13 @@
+﻿W						-	Forward
+A						-	Strafe left
+S						-	Backward
+D						-	Strafe right
+MouseButton_Forward		-	Fly up
+MouseButton_Back		-	Fly down
+MouseWheel				-	Rotate Camera
+MouseWheelScroll		-	BrushZCorrection
+ArrowUp					-	Increase brush Radius
+ArrowDown				-	Decrease brush Radius
+R						-	Reset brush ZCorrection & Radius
+MouseLeft				-	Build terrain
+MouseRight				-	Clear terrain

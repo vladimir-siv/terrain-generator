@@ -14,7 +14,7 @@ namespace TerrainGenerator
 
 		private ComputeBuffer Values = null;
 		private ComputeBuffer Targets = null;
-		private ComputeBuffer Outputs = null;
+		private ComputeBuffer TargetValues = null;
 
 		public float Min { get; private set; } = -20.0f;
 		public float Max { get; private set; } = +20.0f;
@@ -63,8 +63,8 @@ namespace TerrainGenerator
 
 				Targets?.Release();
 				Targets = null;
-				Outputs?.Release();
-				Outputs = null;
+				TargetValues?.Release();
+				TargetValues = null;
 			}
 		}
 
@@ -100,22 +100,20 @@ namespace TerrainGenerator
 				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
 
 				Targets?.Release();
-				Outputs?.Release();
+				TargetValues?.Release();
 
 				Targets = new ComputeBuffer(targets.Count, 3 * sizeof(float));
 				Targets.SetData(targets);
 
-				Outputs = new ComputeBuffer(targets.Count, sizeof(float));
+				TargetValues = new ComputeBuffer(targets.Count, sizeof(float));
 			}
 		}
 
-		public void Calculate(float[] output)
+		public void Calculate()
 		{
 			lock (Sync)
 			{
-				if (Targets == null || Outputs == null) throw new InvalidOperationException("Targets are not set. Call SetTargets() before this method.");
-				if (output == null) throw new ArgumentNullException(nameof(output));
-				if (output.Length != Outputs.count) throw new ArgumentException(nameof(output));
+				if (Targets == null || TargetValues == null) throw new InvalidOperationException("Targets are not set. Call SetTargets() before this method.");
 				
 				lock (TrilinearInterpolator)
 				{
@@ -127,12 +125,21 @@ namespace TerrainGenerator
 					TrilinearInterpolator.SetFloat("_step", Step);
 					TrilinearInterpolator.SetFloat("_target_count", Targets.count);
 					TrilinearInterpolator.SetBuffer(main, "_targets", Targets);
-					TrilinearInterpolator.SetBuffer(main, "_outputs", Outputs);
+					TrilinearInterpolator.SetBuffer(main, "_target_values", TargetValues);
 
 					TrilinearInterpolator.Dispatch(main, Targets.count, 1, 1);
-
-					Outputs.GetData(output);
 				}
+			}
+		}
+
+		public void GetTargetValues(float[] targetValues)
+		{
+			lock (Sync)
+			{
+				if (targetValues == null) throw new ArgumentNullException(nameof(targetValues));
+				if (targetValues.Length != TargetValues.count) throw new ArgumentException(nameof(targetValues));
+
+				TargetValues.GetData(targetValues);
 			}
 		}
 
@@ -142,11 +149,11 @@ namespace TerrainGenerator
 			{
 				Values?.Release();
 				Targets?.Release();
-				Outputs?.Release();
+				TargetValues?.Release();
 
 				Values = null;
 				Targets = null;
-				Outputs = null;
+				TargetValues = null;
 			}
 		}
 	}
