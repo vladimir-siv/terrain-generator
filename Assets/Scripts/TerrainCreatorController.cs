@@ -59,6 +59,7 @@ public class TerrainCreatorController : MonoBehaviour
 		ObservedTerrain = new Terrain();
 		TerrainMesh = GetComponent<MeshFilter>().mesh;
 		TerrainCollider = GetComponent<BoxCollider>();
+		GetComponent<MeshRenderer>().material.SetFloat("_Scale", ObservedTerrain.Scale);
 		GenerateTerrain(50);
 
 		transform.position = new Vector3(ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f);
