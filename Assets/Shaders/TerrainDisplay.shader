@@ -21,14 +21,12 @@
 			struct fragment
 			{
 				float4 position: SV_POSITION;
-				float3 uv: TEXCOORD0;
 			};
 
 			fragment vert(vertex v)
 			{
 				fragment f;
 				f.position = UnityObjectToClipPos(v.position);
-				f.uv = v.position.xyz * 0.5 + 0.5;
 				return f;
 			}
 

@@ -11,3 +11,5 @@ ArrowDown				-	Decrease brush Radius
 R						-	Reset brush ZCorrection & Radius
 MouseLeft				-	Build terrain
 MouseRight				-	Clear terrain
+ArrowRight				-	Increase terrain granularity
+ArrowLeft				-	Decrease terrain granularity

@@ -8,6 +8,7 @@ public class TerrainCreatorController : MonoBehaviour
 	[SerializeField] private float TerrainScale = 10.0f;
 
 	private Terrain ObservedTerrain { get; set; }
+	private Mesh TerrainMesh { get; set; }
 	private BoxCollider TerrainCollider { get; set; }
 	private int TerrainGranularity { get; set; }
 
@@ -15,6 +16,32 @@ public class TerrainCreatorController : MonoBehaviour
 	private Material BrushMaterial { get; set; }
 	private float BrushRadius { get; set; }
 	private float BrushZCorretion { get; set; }
+
+	private void Awake()
+	{
+		if (tag == "Terrain") return;
+
+		Debug.Log("Awake debug enabled!");
+		var granularity = 2;
+
+		var size = granularity + 1;
+		var targetVals = new float[size * size * size];
+
+		using (var terr = new Terrain())
+		{
+			terr.GenerateFlat();
+			terr.SetTargets(granularity);
+			terr.UpdateTerrain(new Vector3(5.0f, 5.0f, 5.0f), 10f, +25f);
+			terr.Calculate();
+			terr.GetTargetValues(targetVals);
+		}
+
+		System.IO.File.WriteAllLines
+		(
+			System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "log.txt"),
+			System.Linq.Enumerable.Select(targetVals, v => v.ToString("F2"))
+		);
+	}
 
 	private void GenerateTerrain(int granularity, bool flat = true)
 	{
@@ -24,12 +51,13 @@ public class TerrainCreatorController : MonoBehaviour
 		else ObservedTerrain.GenerateRandom(TerrainStep, TerrainScale);
 
 		TerrainGranularity = granularity;
-		ObservedTerrain.SetGridTargets(granularity);
+		ObservedTerrain.SetTargets(granularity);
 	}
 
 	private void Start()
 	{
 		ObservedTerrain = new Terrain();
+		TerrainMesh = GetComponent<MeshFilter>().mesh;
 		TerrainCollider = GetComponent<BoxCollider>();
 		GenerateTerrain(50);
 
@@ -66,6 +94,16 @@ public class TerrainCreatorController : MonoBehaviour
 			{
 				BrushRadius = 1.0f;
 				BrushZCorretion = 0.0f;
+				//ObservedTerrain.SetGridTargets(TerrainGranularity = 50);
+			}
+
+			var incgran = Input.GetKeyDown(KeyCode.RightArrow);
+			var decgran = Input.GetKeyDown(KeyCode.LeftArrow);
+
+			if (incgran ^ decgran)
+			{
+				if (incgran) ObservedTerrain.SetTargets(++TerrainGranularity);
+				if (decgran) ObservedTerrain.SetTargets(--TerrainGranularity);
 			}
 
 			var build = Input.GetMouseButton(0);
@@ -73,9 +111,14 @@ public class TerrainCreatorController : MonoBehaviour
 
 			if (build ^ clear)
 			{
-				if (build) ObservedTerrain.UpdateTerrain(center, BrushRadius, +0.01f);
-				if (clear) ObservedTerrain.UpdateTerrain(center, BrushRadius, -0.01f);
+				if (build) ObservedTerrain.UpdateTerrain(center, BrushRadius, +1f);
+				if (clear) ObservedTerrain.UpdateTerrain(center, BrushRadius, -1f);
 				ObservedTerrain.Calculate();
+				ObservedTerrain.Triangulate(TerrainGranularity);
+				ObservedTerrain.GetTerrainMeshData(out var vertices, out var indices, out var normals);
+				TerrainMesh.vertices = vertices;
+				TerrainMesh.triangles = indices;
+				TerrainMesh.normals = normals;
 			}
 		}
 

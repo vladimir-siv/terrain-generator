@@ -132,8 +132,8 @@ GameObject:
   - component: {fileID: 593809529}
   - component: {fileID: 593809528}
   - component: {fileID: 593809527}
-  - component: {fileID: 593809530}
   - component: {fileID: 593809526}
+  - component: {fileID: 593809530}
   m_Layer: 0
   m_Name: Terrain
   m_TagString: Terrain
@@ -200,7 +200,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 593809525}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 0}
 --- !u!4 &593809529
 Transform:
   m_ObjectHideFlags: 0
@@ -228,6 +228,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3c0b7758e12e2e14c95c52f9f524476d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  TerrainStep: 0.1
+  TerrainScale: 10
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0

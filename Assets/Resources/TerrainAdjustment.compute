@@ -26,11 +26,16 @@ void main(uint3 id: SV_DispatchThreadID)
 	uint k = id.z;
 
 	float3 coord = float3(index_to_coord(i), index_to_coord(j), index_to_coord(k));
-
-	float factor = floor(1.0f - saturate(distance(coord, _center) - _radius));
+	float dist = distance(coord, _center);
 
 	uint index = i + j * size1 + k * size2;
-	_values[index] += factor * _delta;
+	_values[index] += _delta *
+	(
+		(dist < 0.2 * _radius)
+		+
+		(0.2 * _radius <= dist && dist <= _radius) * (1.25 * (1.0 - dist / _radius))
+	);
+
 	_values[index] = max(_values[index], _min);
 	_values[index] = min(_values[index], _max);
 }
