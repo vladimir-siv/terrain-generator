@@ -1,15 +1,17 @@
-﻿W						-	Forward
+﻿MouseLeft				-	Build terrain
+MouseRight				-	Clear terrain
+W						-	Move forward
 A						-	Strafe left
-S						-	Backward
+S						-	Move backward
 D						-	Strafe right
 MouseButton_Forward		-	Fly up
 MouseButton_Back		-	Fly down
 MouseWheel				-	Rotate Camera
 MouseWheelScroll		-	BrushZCorrection
-ArrowUp					-	Increase brush Radius
-ArrowDown				-	Decrease brush Radius
++						-	Increase brush Radius
+-						-	Decrease brush Radius
 R						-	Reset brush ZCorrection & Radius
-MouseLeft				-	Build terrain
-MouseRight				-	Clear terrain
-ArrowRight				-	Increase terrain granularity
-ArrowLeft				-	Decrease terrain granularity
+ArrowUp					-	Increase terrain granularity
+ArrowDown				-	Decrease terrain granularity
+G						-	Generate random complete terrain
+C						-	Clear (reset) complete terrain

@@ -29,7 +29,7 @@ public class TerrainCreatorController : MonoBehaviour
 
 		using (var terr = new Terrain())
 		{
-			terr.GenerateFlat();
+			terr.GenerateEmpty();
 			terr.SetTargets(granularity);
 			terr.UpdateTerrain(new Vector3(5.0f, 5.0f, 5.0f), 10f, +25f);
 			terr.Calculate();
@@ -43,11 +43,11 @@ public class TerrainCreatorController : MonoBehaviour
 		);
 	}
 
-	private void GenerateTerrain(int granularity, bool flat = true)
+	private void GenerateTerrain(int granularity, bool empty = true)
 	{
 		if (granularity <= 0) throw new ArgumentException(nameof(granularity));
 
-		if (flat) ObservedTerrain.GenerateFlat(TerrainStep, TerrainScale);
+		if (empty) ObservedTerrain.GenerateEmpty(TerrainStep, TerrainScale);
 		else ObservedTerrain.GenerateRandom(TerrainStep, TerrainScale);
 
 		TerrainGranularity = granularity;
@@ -76,40 +76,53 @@ public class TerrainCreatorController : MonoBehaviour
 
 	private void Update()
 	{
+		// Precache information
 		var mouse = Input.mousePosition;
 		var cam = Camera.main;
-
-		var z = Vector3.Distance(cam.transform.position, transform.position);
-		var center = cam.ScreenToWorldPoint(new Vector3(mouse.x, mouse.y, z + BrushZCorretion));
+		var center = cam.ScreenToWorldPoint(new Vector3(mouse.x, mouse.y, Vector3.Distance(cam.transform.position, transform.position) + BrushZCorretion));
 		var alpha = 0.0f;
 
+		// Generate/Clear complete terrain
+		var gen = Input.GetKeyDown(KeyCode.G);
+		var clr = Input.GetKeyDown(KeyCode.C);
+		if (gen ^ clr)
+		{
+			if (gen) GenerateTerrain(TerrainGranularity, false);
+			if (clr) GenerateTerrain(TerrainGranularity, true);
+		}
+
+		// Terrain granularity adjustment
+		var incgran = Input.GetKeyDown(KeyCode.UpArrow);
+		var decgran = Input.GetKeyDown(KeyCode.DownArrow);
+		if (incgran ^ decgran)
+		{
+			if (incgran) ++TerrainGranularity;
+			if (decgran) --TerrainGranularity;
+			if (TerrainGranularity < 1) TerrainGranularity = 1;
+			ObservedTerrain.SetTargets(TerrainGranularity);
+		}
+
+		// If mouse is inside terrain bounds
 		if (TerrainCollider.bounds.Contains(center))
 		{
+			// Display brush with some alpha
 			alpha = 0.3f;
 
-			if (Input.GetKey(KeyCode.UpArrow)) BrushRadius += 0.01f;
-			if (Input.GetKey(KeyCode.DownArrow)) BrushRadius -= 0.01f;
+			// Adjust brush
+			if (Input.GetKey(KeyCode.KeypadPlus)) BrushRadius += 0.01f;
+			if (Input.GetKey(KeyCode.KeypadMinus)) BrushRadius -= 0.01f;
 			BrushZCorretion += Input.mouseScrollDelta.y / 10.0f;
 
+			// Reset brush
 			if (Input.GetKeyDown(KeyCode.R))
 			{
 				BrushRadius = 1.0f;
 				BrushZCorretion = 0.0f;
-				//ObservedTerrain.SetGridTargets(TerrainGranularity = 50);
 			}
 
-			var incgran = Input.GetKeyDown(KeyCode.RightArrow);
-			var decgran = Input.GetKeyDown(KeyCode.LeftArrow);
-
-			if (incgran ^ decgran)
-			{
-				if (incgran) ObservedTerrain.SetTargets(++TerrainGranularity);
-				if (decgran) ObservedTerrain.SetTargets(--TerrainGranularity);
-			}
-
+			// Build/Clear terrain
 			var build = Input.GetMouseButton(0);
 			var clear = Input.GetMouseButton(1);
-
 			if (build ^ clear)
 			{
 				if (build) ObservedTerrain.UpdateTerrain(center, BrushRadius, +1f);
@@ -123,6 +136,7 @@ public class TerrainCreatorController : MonoBehaviour
 			}
 		}
 
+		// Apply brush adjustment
 		Brush.transform.position = center;
 		Brush.transform.localScale = new Vector3(BrushRadius, BrushRadius, BrushRadius);
 		BrushMaterial.SetColor("_Color", new Color(1.0f, 0.0f, 0.0f, alpha));

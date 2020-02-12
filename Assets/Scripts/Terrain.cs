@@ -38,12 +38,12 @@ namespace TerrainGenerator
 		public void GenerateRandom(float step, float scale, float range) => GenerateRandom(step, scale, -range / 2.0f, +range / 2.0f);
 		public void GenerateRandom(float step, float scale, float min, float max) => Generate(step, scale, min, max, null);
 
-		public void GenerateFlat() => GenerateFlat(Step, Scale, Min, Max, Min);
-		public void GenerateFlat(float step) => GenerateFlat(step, Scale, Min, Max, Min);
-		public void GenerateFlat(float step, float scale) => GenerateFlat(step, scale, Min, Max, Min);
-		public void GenerateFlat(float step, float scale, float range) => GenerateFlat(step, scale, -range / 2.0f, +range / 2.0f, -range / 2.0f);
-		public void GenerateFlat(float step, float scale, float range, float initial) => GenerateFlat(step, scale, -range / 2.0f, +range / 2.0f, initial);
-		public void GenerateFlat(float step, float scale, float min, float max, float initial) => Generate(step, scale, min, max, initial);
+		public void GenerateEmpty() => GenerateEmpty(Step, Scale, Min, Max, 0.0f);
+		public void GenerateEmpty(float step) => GenerateEmpty(step, Scale, Min, Max, 0.0f);
+		public void GenerateEmpty(float step, float scale) => GenerateEmpty(step, scale, Min, Max, 0.0f);
+		public void GenerateEmpty(float step, float scale, float range) => GenerateEmpty(step, scale, -range / 2.0f, +range / 2.0f, 0.0f);
+		public void GenerateEmpty(float step, float scale, float range, float initial) => GenerateEmpty(step, scale, -range / 2.0f, +range / 2.0f, initial);
+		public void GenerateEmpty(float step, float scale, float min, float max, float initial) => Generate(step, scale, min, max, initial);
 
 		public void Generate(float step, float scale, float min, float max, float? initial)
 		{
