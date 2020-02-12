@@ -18,5 +18,5 @@ void main(uint3 id: SV_DispatchThreadID)
 
 	float step = _scale / (_granularity - 1);
 
-	_targets[i * size2 + j * size1 + k] = float3(i * step, j * step, k * step);
+	_targets[i + j * size1 + k * size2] = float3(i * step, j * step, k * step);
 }

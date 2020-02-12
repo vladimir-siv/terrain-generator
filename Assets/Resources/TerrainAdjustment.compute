@@ -29,7 +29,7 @@ void main(uint3 id: SV_DispatchThreadID)
 
 	float factor = floor(1.0f - saturate(distance(coord, _center) - _radius));
 
-	uint index = i * size2 + j * size1 + k;
+	uint index = i + j * size1 + k * size2;
 	_values[index] += factor * _delta;
 	_values[index] = max(_values[index], _min);
 	_values[index] = min(_values[index], _max);

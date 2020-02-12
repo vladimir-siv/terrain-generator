@@ -11,6 +11,8 @@ uint _target_count;
 RWStructuredBuffer<float3> _targets;
 RWStructuredBuffer<float> _target_values;
 
+uint _dimension;
+
 uint coord_to_index(float v) { return (uint)(v / _step); }
 float index_to_coord(uint i) { return i * _step; }
 
@@ -21,7 +23,9 @@ void main(uint3 id: SV_DispatchThreadID)
 	uint size2 = size1 * size1;
 	uint size3 = size2 * size1;
 
-	float3 target = _targets[id.x];
+	uint _target_index = id.x + id.y * _dimension + id.z * _dimension * _dimension;
+
+	float3 target = _targets[min(_target_index, _target_count - 1)];
 
 	float x = target.x;
 	float y = target.y;
@@ -66,5 +70,6 @@ void main(uint3 id: SV_DispatchThreadID)
 
 	float v = v0 * (1.0f - zd) + v1 * zd;
 
-	_target_values[id.x] = v;
+	if (_target_index < _target_count)
+		_target_values[_target_index] = v;
 }

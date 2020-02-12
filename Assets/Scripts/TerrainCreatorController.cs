@@ -31,7 +31,7 @@ public class TerrainCreatorController : MonoBehaviour
 	{
 		ObservedTerrain = new Terrain();
 		TerrainCollider = GetComponent<BoxCollider>();
-		GenerateTerrain(32);
+		GenerateTerrain(50);
 
 		transform.position = new Vector3(ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f);
 		transform.localScale = new Vector3(ObservedTerrain.Scale, ObservedTerrain.Scale, ObservedTerrain.Scale);
@@ -75,6 +75,7 @@ public class TerrainCreatorController : MonoBehaviour
 			{
 				if (build) ObservedTerrain.UpdateTerrain(center, BrushRadius, +0.01f);
 				if (clear) ObservedTerrain.UpdateTerrain(center, BrushRadius, -0.01f);
+				ObservedTerrain.Calculate();
 			}
 		}
 

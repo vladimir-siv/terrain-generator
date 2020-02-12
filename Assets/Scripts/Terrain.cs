@@ -153,6 +153,8 @@ namespace TerrainGenerator
 				
 				lock (TrilinearInterpolator)
 				{
+					var dimension = (int)Math.Ceiling(Math.Pow(Targets.count, 1.0 / 3.0) + 1e-9);
+
 					var main = TrilinearInterpolator.FindKernel("main");
 
 					TrilinearInterpolator.SetBuffer(main, "_values", Values);
@@ -163,8 +165,9 @@ namespace TerrainGenerator
 					TrilinearInterpolator.SetInt("_target_count", Targets.count);
 					TrilinearInterpolator.SetBuffer(main, "_targets", Targets);
 					TrilinearInterpolator.SetBuffer(main, "_target_values", TargetValues);
+					TrilinearInterpolator.SetInt("_dimension", dimension);
 
-					TrilinearInterpolator.Dispatch(main, Targets.count, 1, 1);
+					TrilinearInterpolator.Dispatch(main, dimension, dimension, dimension);
 				}
 			}
 		}
