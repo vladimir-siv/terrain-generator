@@ -1,17 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace TerrainGenerator
 {
 	public sealed class Terrain : IDisposable
 	{
-		private static readonly ComputeShader TrilinearInterpolator = Resources.Load<ComputeShader>("TrilinearInterpolation");
+		private static readonly ComputeShader TerrainGenerator = Resources.Load<ComputeShader>("TerrainGeneration");
 		private static readonly ComputeShader TerrainAdjustor = Resources.Load<ComputeShader>("TerrainAdjustment");
 		private static readonly ComputeShader Gridificator = Resources.Load<ComputeShader>("Gridification");
+		private static readonly ComputeShader TrilinearInterpolator = Resources.Load<ComputeShader>("TrilinearInterpolation");
 		private static readonly ComputeShader Triangulator = Resources.Load<ComputeShader>("Triangulation");
-		private static readonly uint[] Counters = new[] { 0u };
+		private static readonly uint[] ResetCounters = new[] { 0u };
 
 		private readonly object Sync = new object();
 
@@ -23,13 +22,14 @@ namespace TerrainGenerator
 		private ComputeBuffer Indices = null;
 		private ComputeBuffer Normals = null;
 
-		private ComputeBuffer Counter = new ComputeBuffer(1, sizeof(uint));
-		private uint[] CounterCache = new uint[1];
+		private ComputeBuffer Counters = null;
+		private uint[] CountersCache = new uint[1];
 		
 		public float Step { get; private set; } = 0.1f;
 		public float Scale { get; private set; } = 10.0f;
 		public float Min { get; private set; } = -20.0f;
 		public float Max { get; private set; } = +20.0f;
+		public int Granularity { get; private set; } = 0;
 		public int Size => (int)Math.Ceiling(Scale / Step);
 
 		public void GenerateRandom() => GenerateRandom(Step, Scale, Min, Max);
@@ -59,22 +59,12 @@ namespace TerrainGenerator
 				Scale = scale;
 				Min = min;
 				Max = max;
+				Granularity = 0;
 
-				var size1 = Size;
-				var size2 = size1 * size1;
-				var size3 = size2 * size1;
-
-				var initial_values = new List<float>(size3);
-
-				// Optimize this & create smart random
-				for (var i = 0; i < size1; ++i)
-					for (var j = 0; j < size1; ++j)
-						for (var k = 0; k < size1; ++k)
-							initial_values.Add(initial ?? Random.Range(min, max));
+				var size = Size;
 
 				Values?.Release();
-				Values = new ComputeBuffer(initial_values.Count, sizeof(float));
-				Values.SetData(initial_values);
+				Values = new ComputeBuffer(size * size * size, sizeof(float));
 
 				Targets?.Release();
 				Targets = null;
@@ -86,10 +76,26 @@ namespace TerrainGenerator
 				Indices = null;
 				Normals?.Release();
 				Normals = null;
+				if (Counters == null) Counters = new ComputeBuffer(1, sizeof(uint));
+
+				lock (TerrainGenerator)
+				{
+					var main = TerrainGenerator.FindKernel("main");
+
+					TerrainGenerator.SetBuffer(main, "_values", Values);
+					TerrainGenerator.SetFloat("_step", Step);
+					TerrainGenerator.SetFloat("_scale", Scale);
+					TerrainGenerator.SetFloat("_min", Min);
+					TerrainGenerator.SetFloat("_max", Max);
+					TerrainGenerator.SetFloat("_initial", initial ?? 0.0f);
+					TerrainGenerator.SetBool("_random", initial == null);
+
+					TerrainGenerator.Dispatch(main, size, size, size);
+				}
 			}
 		}
 
-		public void UpdateTerrain(Vector3 center, float radius, float delta)
+		public void Update(Vector3 center, float radius, float delta)
 		{
 			lock (Sync)
 			{
@@ -115,7 +121,7 @@ namespace TerrainGenerator
 			}
 		}
 
-		public void SetTargets(int granularity)
+		public void Gridify(int granularity)
 		{
 			lock (Sync)
 			{
@@ -129,24 +135,23 @@ namespace TerrainGenerator
 				Indices?.Release();
 				Normals?.Release();
 
-				var vertexCnt = granularity * granularity * granularity * 15;
+				Granularity = granularity++;
+				var targetCnt = granularity * granularity * granularity;
+				var vertexCnt = Granularity * Granularity * Granularity * 15;
+
+				Targets = new ComputeBuffer(targetCnt, 3 * sizeof(float));
+				TargetValues = new ComputeBuffer(targetCnt, sizeof(float));
+
 				Vertices = new ComputeBuffer(vertexCnt, 3 * sizeof(float));
 				Indices = new ComputeBuffer(vertexCnt, sizeof(int));
 				Normals = new ComputeBuffer(vertexCnt, 3 * sizeof(float));
-
-				++granularity;
-				var targetCnt = granularity * granularity * granularity;
-
-				Targets = new ComputeBuffer(targetCnt, 3 * sizeof(float));
-
-				TargetValues = new ComputeBuffer(targetCnt, sizeof(float));
 
 				lock (Gridificator)
 				{
 					var main = Gridificator.FindKernel("main");
 
 					Gridificator.SetBuffer(main, "_targets", Targets);
-					Gridificator.SetInt("_granularity", granularity);
+					Gridificator.SetInt("_granularity", Granularity);
 					Gridificator.SetFloat("_scale", Scale);
 					Gridificator.Dispatch(main, granularity, granularity, granularity);
 				}
@@ -157,7 +162,7 @@ namespace TerrainGenerator
 		{
 			lock (Sync)
 			{
-				if (Targets == null || TargetValues == null) throw new InvalidOperationException("Targets are not set. Call SetTargets() before this method.");
+				if (Granularity == 0) throw new InvalidOperationException("Terrain not gridified. Call Gridify() before this method.");
 				
 				lock (TrilinearInterpolator)
 				{
@@ -180,33 +185,18 @@ namespace TerrainGenerator
 			}
 		}
 
-		// [Unused]
-		public void GetTargetValues(float[] targetValues)
+		public void Triangulate()
 		{
 			lock (Sync)
 			{
-				if (targetValues == null) throw new ArgumentNullException(nameof(targetValues));
-				if (targetValues.Length != TargetValues.count) throw new ArgumentException(nameof(targetValues));
-
-				TargetValues.GetData(targetValues);
-			}
-		}
-
-		public void Triangulate(int granularity)
-		{
-			lock (Sync)
-			{
-				if (Targets == null || TargetValues == null) throw new InvalidOperationException("Targets are not set. Call SetTargets() before this method.");
-				if (granularity <= 0) throw new ArgumentException("Granularity cannot be less than or equal to 0.");
-
-				var size = granularity + 1;
+				if (Granularity == 0) throw new InvalidOperationException("Terrain not gridified. Call Gridify() before this method (for valid results Calculate() should also be called before this method).");
+				
+				var size = Granularity + 1;
 				size = size * size * size;
-
-				if (size != Targets.count) throw new ArgumentException(nameof(granularity));
 
 				lock (Triangulator)
 				{
-					Counter.SetData(Counters);
+					Counters.SetData(ResetCounters);
 
 					var main = Triangulator.FindKernel("main");
 
@@ -214,28 +204,28 @@ namespace TerrainGenerator
 					Triangulator.SetFloat("_scale", Scale);
 					Triangulator.SetFloat("_min", Min);
 					Triangulator.SetFloat("_max", Max);
-					Triangulator.SetInt("_granularity", granularity);
+					Triangulator.SetInt("_granularity", Granularity);
 					Triangulator.SetInt("_target_count", size);
 					Triangulator.SetBuffer(main, "_targets", Targets);
 					Triangulator.SetBuffer(main, "_target_values", TargetValues);
 					Triangulator.SetBuffer(main, "_vertices", Vertices);
 					Triangulator.SetBuffer(main, "_indices", Indices);
 					Triangulator.SetBuffer(main, "_normals", Normals);
-					Triangulator.SetBuffer(main, "_cnt", Counter);
+					Triangulator.SetBuffer(main, "_counters", Counters);
 
-					Triangulator.Dispatch(main, granularity, granularity, granularity);
+					Triangulator.Dispatch(main, Granularity, Granularity, Granularity);
 				}
 			}
 		}
 
-		public void GetTerrainMeshData(out Vector3[] vertices, out int[] indices, out Vector3[] normals)
+		public void GetMeshData(out Vector3[] vertices, out int[] indices, out Vector3[] normals)
 		{
 			lock (Sync)
 			{
-				if (Vertices == null || Indices == null || Normals == null) throw new InvalidOperationException("Cannot read terrain mesh data when none was generated. Call Triangulate() before this method.");
+				if (Granularity == 0) throw new InvalidOperationException("Cannot read terrain mesh data when none was generated. Call Gridify() before this method (for valid results Triangulate() should also be called before this method).");
 
-				Counter.GetData(CounterCache);
-				var count = (int)CounterCache[0];
+				Counters.GetData(CountersCache);
+				var count = (int)CountersCache[0];
 
 				vertices = new Vector3[count];
 				indices = new int[count];
@@ -257,7 +247,7 @@ namespace TerrainGenerator
 				Vertices?.Release();
 				Indices?.Release();
 				Normals?.Release();
-				Counter?.Release();
+				Counters?.Release();
 
 				Values = null;
 				Targets = null;
@@ -265,7 +255,48 @@ namespace TerrainGenerator
 				Vertices = null;
 				Indices = null;
 				Normals = null;
-				Counter = null;
+				Counters = null;
+
+				Granularity = 0;
+			}
+		}
+
+		// [Unused]
+		public void GetValues(float[] values)
+		{
+			lock (Sync)
+			{
+				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
+				if (values == null) throw new ArgumentNullException(nameof(values));
+				if (values.Length != Values.count) throw new ArgumentException($"Array '{nameof(values)}' has invalid size.");
+
+				Values.GetData(values);
+			}
+		}
+
+		// [Unused]
+		public void GetTargets(Vector3[] targets)
+		{
+			lock (Sync)
+			{
+				if (Targets == null) throw new InvalidOperationException("Terrain not gridified. Call Gridify() before this method.");
+				if (targets == null) throw new ArgumentNullException(nameof(targets));
+				if (targets.Length != Targets.count) throw new ArgumentException($"Array '{nameof(targets)}' has invalid size.");
+
+				Targets.GetData(targets);
+			}
+		}
+
+		// [Unused]
+		public void GetTargetValues(float[] targetValues)
+		{
+			lock (Sync)
+			{
+				if (TargetValues == null) throw new InvalidOperationException("Terrain not gridified. Call Gridify() before this method (for valid results Calculate() should also be called before this method).");
+				if (targetValues == null) throw new ArgumentNullException(nameof(targetValues));
+				if (targetValues.Length != TargetValues.count) throw new ArgumentException($"Array '{nameof(targetValues)}' has invalid size.");
+
+				TargetValues.GetData(targetValues);
 			}
 		}
 	}

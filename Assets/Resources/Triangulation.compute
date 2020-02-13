@@ -15,14 +15,14 @@ RWStructuredBuffer<float3> _vertices;
 RWStructuredBuffer<int> _indices;
 RWStructuredBuffer<float3> _normals;
 
-RWStructuredBuffer<uint> _cnt;
+RWStructuredBuffer<uint> _counters;
 
 float terrain_value_ratio(float v) { return (v < 0.0) * (-v / -_min) + (v > 0.0) * (v / _max); }
 
 void append_triangle(float3 p1, float3 p2, float3 p3)
 {
 	uint index;
-	InterlockedAdd(_cnt[0], 3, index);
+	InterlockedAdd(_counters[0], 3, index);
 
 	float3 normal = normalize(cross(p2 - p1, p3 - p1));
 

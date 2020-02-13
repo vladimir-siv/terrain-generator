@@ -19,28 +19,45 @@ public class TerrainCreatorController : MonoBehaviour
 
 	private void Awake()
 	{
-		if (tag == "Terrain") return;
-
 		Debug.Log("Awake debug enabled!");
 		var granularity = 2;
 
-		var size = granularity + 1;
-		var targetVals = new float[size * size * size];
-
-		using (var terr = new Terrain())
+		using (var terrain = new Terrain())
 		{
-			terr.GenerateEmpty();
-			terr.SetTargets(granularity);
-			terr.UpdateTerrain(new Vector3(5.0f, 5.0f, 5.0f), 10f, +25f);
-			terr.Calculate();
-			terr.GetTargetValues(targetVals);
-		}
+			terrain.GenerateEmpty();
+			terrain.Gridify(granularity);
+			terrain.Update(new Vector3(5.0f, 5.0f, 5.0f), 0.01f, +5f);
+			terrain.Calculate();
 
-		System.IO.File.WriteAllLines
-		(
-			System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "log.txt"),
-			System.Linq.Enumerable.Select(targetVals, v => v.ToString("F2"))
-		);
+			var values_size = terrain.Size;
+			var target_size = terrain.Granularity + 1;
+			values_size = values_size * values_size * values_size;
+			target_size = target_size * target_size * target_size;
+
+			var values = new float[values_size];
+			var targets = new Vector3[target_size];
+			var target_values = new float[target_size];
+
+			terrain.GetValues(values);
+			terrain.GetTargets(targets);
+			terrain.GetTargetValues(target_values);
+
+			System.IO.File.WriteAllLines
+			(
+				System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), @"logs\values.txt"),
+				System.Linq.Enumerable.Select(values, v => v.ToString("F2"))
+			);
+			System.IO.File.WriteAllLines
+			(
+				System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), @"logs\targets.txt"),
+				System.Linq.Enumerable.Select(targets, v => v.ToString())
+			);
+			System.IO.File.WriteAllLines
+			(
+				System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), @"logs\target_values.txt"),
+				System.Linq.Enumerable.Select(target_values, v => v.ToString("F2"))
+			);
+		}
 	}
 
 	private void GenerateTerrain(int granularity, bool empty = true)
@@ -51,7 +68,7 @@ public class TerrainCreatorController : MonoBehaviour
 		else ObservedTerrain.GenerateRandom(TerrainStep, TerrainScale);
 
 		TerrainGranularity = granularity;
-		ObservedTerrain.SetTargets(granularity);
+		ObservedTerrain.Gridify(granularity);
 	}
 
 	private void Start()
@@ -99,7 +116,7 @@ public class TerrainCreatorController : MonoBehaviour
 			if (incgran) ++TerrainGranularity;
 			if (decgran) --TerrainGranularity;
 			if (TerrainGranularity < 1) TerrainGranularity = 1;
-			ObservedTerrain.SetTargets(TerrainGranularity);
+			ObservedTerrain.Gridify(TerrainGranularity);
 		}
 
 		// If mouse is inside terrain bounds
@@ -125,11 +142,11 @@ public class TerrainCreatorController : MonoBehaviour
 			var clear = Input.GetMouseButton(1);
 			if (build ^ clear)
 			{
-				if (build) ObservedTerrain.UpdateTerrain(center, BrushRadius, +1f);
-				if (clear) ObservedTerrain.UpdateTerrain(center, BrushRadius, -1f);
+				if (build) ObservedTerrain.Update(center, BrushRadius, +1f);
+				if (clear) ObservedTerrain.Update(center, BrushRadius, -1f);
 				ObservedTerrain.Calculate();
-				ObservedTerrain.Triangulate(TerrainGranularity);
-				ObservedTerrain.GetTerrainMeshData(out var vertices, out var indices, out var normals);
+				ObservedTerrain.Triangulate();
+				ObservedTerrain.GetMeshData(out var vertices, out var indices, out var normals);
 				TerrainMesh.vertices = vertices;
 				TerrainMesh.triangles = indices;
 				TerrainMesh.normals = normals;

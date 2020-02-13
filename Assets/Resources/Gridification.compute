@@ -8,7 +8,7 @@ float _scale;
 [numthreads(1, 1, 1)]
 void main(uint3 id: SV_DispatchThreadID)
 {
-	uint size1 = _granularity;
+	uint size1 = _granularity + 1;
 	uint size2 = size1 * size1;
 	uint size3 = size2 * size1;
 
@@ -16,7 +16,7 @@ void main(uint3 id: SV_DispatchThreadID)
 	uint j = id.y;
 	uint k = id.z;
 
-	float step = _scale / (_granularity - 1);
+	float step = _scale / _granularity;
 
 	_targets[i + j * size1 + k * size2] = float3(i * step, j * step, k * step);
 }
