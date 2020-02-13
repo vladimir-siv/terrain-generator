@@ -19,14 +19,19 @@ public class TerrainCreatorController : MonoBehaviour
 
 	private void Awake()
 	{
+		//if (tag == "Terrain") return;
 		Debug.Log("Awake debug enabled!");
+
 		var granularity = 2;
+		var x = 1; var y = 1; var z = 1;
+		var radius = 1f;
+		var delta = +5.0f;
 
 		using (var terrain = new Terrain())
 		{
-			terrain.GenerateEmpty();
+			terrain.GenerateEmpty(0.5f, 1f);
 			terrain.Gridify(granularity);
-			terrain.Update(new Vector3(5.0f, 5.0f, 5.0f), 0.01f, +5f);
+			terrain.Update(new Vector3(terrain.Step * x, terrain.Step * y, terrain.Step * z), radius, delta);
 			terrain.Calculate();
 
 			var values_size = terrain.Size;
@@ -128,6 +133,7 @@ public class TerrainCreatorController : MonoBehaviour
 			// Adjust brush
 			if (Input.GetKey(KeyCode.KeypadPlus)) BrushRadius += 0.01f;
 			if (Input.GetKey(KeyCode.KeypadMinus)) BrushRadius -= 0.01f;
+			if (BrushRadius <= 0.1f) BrushRadius = 0.1f;
 			BrushZCorretion += Input.mouseScrollDelta.y / 10.0f;
 
 			// Reset brush

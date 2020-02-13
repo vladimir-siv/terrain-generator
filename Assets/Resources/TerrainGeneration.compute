@@ -23,7 +23,7 @@ float random1f(uint seed)
 [numthreads(1, 1, 1)]
 void main(uint3 id: SV_DispatchThreadID)
 {
-	uint size1 = (uint)ceil(_scale / _step);
+	uint size1 = (uint)ceil(_scale / _step) + 1;
 	uint size2 = size1 * size1;
 	uint size3 = size2 * size1;
 

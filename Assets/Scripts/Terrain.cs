@@ -30,7 +30,7 @@ namespace TerrainGenerator
 		public float Min { get; private set; } = -20.0f;
 		public float Max { get; private set; } = +20.0f;
 		public int Granularity { get; private set; } = 0;
-		public int Size => (int)Math.Ceiling(Scale / Step);
+		public int Size => (int)Math.Ceiling(Scale / Step) + 1;
 
 		public void GenerateRandom() => GenerateRandom(Step, Scale, Min, Max);
 		public void GenerateRandom(float step) => GenerateRandom(step, Scale, Min, Max);
