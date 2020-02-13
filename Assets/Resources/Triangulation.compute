@@ -354,6 +354,8 @@ void main(uint3 id: SV_DispatchThreadID)
 	uint j = id.y;
 	uint k = id.z;
 
+	++_granularity;
+
 	float _target_indices[8] =
 	{
 		(i + 0) + (j + 0) * _granularity + (k + 0) * _granularity * _granularity,
@@ -390,7 +392,7 @@ void main(uint3 id: SV_DispatchThreadID)
 
 	int index = 0;
 	for (c = 0; c < 8; ++c)
-		index |= (val[c] < 0.0) * (1 << c);
+		index |= (val[c] <= 0.0) * (1 << c);
 
 	for (c = 0; c < 15 && _triangles[index][c] != -1; c += 3)
 	{
@@ -409,7 +411,7 @@ void main(uint3 id: SV_DispatchThreadID)
 		v1 /= _scale;
 		v2 /= _scale;
 		v3 /= _scale;
-
+		
 		append_triangle(v1, v2, v3);
 	}
 }

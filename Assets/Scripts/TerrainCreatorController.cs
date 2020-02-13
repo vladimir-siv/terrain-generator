@@ -4,22 +4,22 @@ using Terrain = TerrainGenerator.Terrain;
 
 public class TerrainCreatorController : MonoBehaviour
 {
+	[SerializeField] private int TerrainGranularity = 50;
 	[SerializeField] private float TerrainStep = 0.1f;
 	[SerializeField] private float TerrainScale = 10.0f;
+	[SerializeField] private float BrushRadius = 1.0f;
+	[SerializeField] private float BrushZCorretion = 0.0f;
 
 	private Terrain ObservedTerrain { get; set; }
 	private Mesh TerrainMesh { get; set; }
 	private BoxCollider TerrainCollider { get; set; }
-	private int TerrainGranularity { get; set; }
 
 	private GameObject Brush { get; set; }
 	private Material BrushMaterial { get; set; }
-	private float BrushRadius { get; set; }
-	private float BrushZCorretion { get; set; }
 
 	private void Awake()
 	{
-		//if (tag == "Terrain") return;
+		if (tag == "Terrain") return;
 		Debug.Log("Awake debug enabled!");
 
 		var granularity = 2;
@@ -65,24 +65,33 @@ public class TerrainCreatorController : MonoBehaviour
 		}
 	}
 
-	private void GenerateTerrain(int granularity, bool empty = true)
+	private void GenerateTerrain(bool empty = true, int terrainGranularity = 0, float terrainStep = 0.0f, float terrainScale = 0.0f)
 	{
-		if (granularity <= 0) throw new ArgumentException(nameof(granularity));
+		if (terrainGranularity <= 0) terrainGranularity = TerrainGranularity;
+		if (terrainStep <= 0.0f) terrainStep = TerrainStep;
+		if (terrainScale <= 0.0f) terrainScale = TerrainScale;
 
-		if (empty) ObservedTerrain.GenerateEmpty(TerrainStep, TerrainScale);
-		else ObservedTerrain.GenerateRandom(TerrainStep, TerrainScale);
+		if (empty) ObservedTerrain.GenerateEmpty(terrainStep, terrainScale);
+		else ObservedTerrain.GenerateRandom(terrainStep, terrainScale);
 
-		TerrainGranularity = granularity;
-		ObservedTerrain.Gridify(granularity);
+		TerrainGranularity = terrainGranularity;
+		TerrainStep = terrainStep;
+		TerrainScale = terrainScale;
+
+		ObservedTerrain.Gridify(terrainGranularity);
 	}
 
 	private void Start()
 	{
+		if (TerrainGranularity <= 0) throw new ArgumentException($"Invalid '{nameof(TerrainGranularity)}'");
+		if (TerrainStep <= 0.0f) throw new ArgumentException($"Invalid '{nameof(TerrainStep)}'");
+		if (TerrainScale <= 0.0f) throw new ArgumentException($"Invalid '{nameof(TerrainScale)}'");
+
 		ObservedTerrain = new Terrain();
 		TerrainMesh = GetComponent<MeshFilter>().mesh;
 		TerrainCollider = GetComponent<BoxCollider>();
 		GetComponent<MeshRenderer>().material.SetFloat("_Scale", ObservedTerrain.Scale);
-		GenerateTerrain(50);
+		GenerateTerrain();
 
 		transform.position = new Vector3(ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f, ObservedTerrain.Scale / 2.0f);
 		transform.localScale = new Vector3(ObservedTerrain.Scale, ObservedTerrain.Scale, ObservedTerrain.Scale);
@@ -92,8 +101,6 @@ public class TerrainCreatorController : MonoBehaviour
 		Destroy(Brush.GetComponent<SphereCollider>());
 		BrushMaterial = Brush.GetComponent<MeshRenderer>().material;
 		BrushMaterial.shader = Shader.Find("Unlit/ColorBlend");
-		BrushRadius = 1.0f;
-		BrushZCorretion = 0.0f;
 	}
 
 	private void Update()
@@ -109,8 +116,8 @@ public class TerrainCreatorController : MonoBehaviour
 		var clr = Input.GetKeyDown(KeyCode.C);
 		if (gen ^ clr)
 		{
-			if (gen) GenerateTerrain(TerrainGranularity, false);
-			if (clr) GenerateTerrain(TerrainGranularity, true);
+			if (gen) GenerateTerrain(false);
+			if (clr) GenerateTerrain(true);
 		}
 
 		// Terrain granularity adjustment
