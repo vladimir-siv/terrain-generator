@@ -31,10 +31,16 @@ public class TerrainCreatorController : MonoBehaviour
 		TerrainScale = terrainScale;
 
 		ObservedTerrain.Gridify(terrainGranularity);
+		TerrainMesh.Clear();
 
-		TerrainMesh.triangles = null;
-		TerrainMesh.vertices = null;
-		TerrainMesh.normals = null;
+		if (empty) return;
+
+		ObservedTerrain.Calculate();
+		ObservedTerrain.Triangulate();
+		ObservedTerrain.GetMeshData(out var vertices, out var indices, out var normals);
+		TerrainMesh.vertices = vertices;
+		TerrainMesh.normals = normals;
+		TerrainMesh.triangles = indices;
 	}
 
 	private void Start()
@@ -72,9 +78,7 @@ public class TerrainCreatorController : MonoBehaviour
 		{
 			ObservedTerrain.Clear();
 			ObservedTerrain.Calculate();
-			TerrainMesh.triangles = null;
-			TerrainMesh.vertices = null;
-			TerrainMesh.normals = null;
+			TerrainMesh.Clear();
 		}
 
 		// Terrain granularity adjustment
@@ -86,6 +90,13 @@ public class TerrainCreatorController : MonoBehaviour
 			if (decgran) --TerrainGranularity;
 			if (TerrainGranularity < 1) TerrainGranularity = 1;
 			ObservedTerrain.Gridify(TerrainGranularity);
+			ObservedTerrain.Calculate();
+			ObservedTerrain.Triangulate();
+			ObservedTerrain.GetMeshData(out var vertices, out var indices, out var normals);
+			TerrainMesh.Clear();
+			TerrainMesh.vertices = vertices;
+			TerrainMesh.normals = normals;
+			TerrainMesh.triangles = indices;
 		}
 
 		// If mouse is inside terrain bounds
@@ -112,14 +123,15 @@ public class TerrainCreatorController : MonoBehaviour
 			var clear = Input.GetMouseButton(1);
 			if (build ^ clear)
 			{
-				if (build) ObservedTerrain.Update(center, BrushRadius, +1f);
-				if (clear) ObservedTerrain.Update(center, BrushRadius, -1f);
+				if (build) ObservedTerrain.Update(new Vector3(center.z, center.y, center.x), BrushRadius, +1f);
+				if (clear) ObservedTerrain.Update(new Vector3(center.z, center.y, center.x), BrushRadius, -1f);
 				ObservedTerrain.Calculate();
 				ObservedTerrain.Triangulate();
 				ObservedTerrain.GetMeshData(out var vertices, out var indices, out var normals);
+				TerrainMesh.Clear();
 				TerrainMesh.vertices = vertices;
-				TerrainMesh.triangles = indices;
 				TerrainMesh.normals = normals;
+				TerrainMesh.triangles = indices;
 			}
 		}
 
