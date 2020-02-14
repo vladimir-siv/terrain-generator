@@ -67,6 +67,16 @@ public class TerrainCreatorController : MonoBehaviour
 		var center = cam.ScreenToWorldPoint(new Vector3(mouse.x, mouse.y, Vector3.Distance(cam.transform.position, transform.position) + BrushZCorretion));
 		var alpha = 0.0f;
 
+		// Clear terrain
+		if (Input.GetKeyDown(KeyCode.C))
+		{
+			ObservedTerrain.Clear();
+			ObservedTerrain.Calculate();
+			TerrainMesh.triangles = null;
+			TerrainMesh.vertices = null;
+			TerrainMesh.normals = null;
+		}
+
 		// Terrain granularity adjustment
 		var incgran = Input.GetKeyDown(KeyCode.UpArrow);
 		var decgran = Input.GetKeyDown(KeyCode.DownArrow);

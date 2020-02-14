@@ -218,6 +218,7 @@ public class TerrainInspector : EditorWindow
 		if (terrain.Step != scale) GenerateTerrain(demanded: false, true, 1, scale, scale);
 		if (terrain.Granularity != 1) terrain.Gridify(1);
 
+		terrain.Clear();
 		terrain.Update(new Vector3(scale * 0f, scale * 0f, scale * 0f), 0.1f, +1f + -2f * (CubeState & (1 << 0)));
 		terrain.Update(new Vector3(scale * 1f, scale * 0f, scale * 0f), 0.1f, +1f + -2f * (CubeState & (1 << 1)));
 		terrain.Update(new Vector3(scale * 1f, scale * 0f, scale * 1f), 0.1f, +1f + -2f * (CubeState & (1 << 2)));

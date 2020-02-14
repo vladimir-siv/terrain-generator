@@ -95,6 +95,30 @@ namespace TerrainGenerator
 			}
 		}
 
+		public void Clear()
+		{
+			lock (Sync)
+			{
+				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
+
+				lock (TerrainGenerator)
+				{
+					var main = TerrainGenerator.FindKernel("main");
+
+					TerrainGenerator.SetBuffer(main, "_values", Values);
+					TerrainGenerator.SetFloat("_step", Step);
+					TerrainGenerator.SetFloat("_scale", Scale);
+					TerrainGenerator.SetFloat("_min", Min);
+					TerrainGenerator.SetFloat("_max", Max);
+					TerrainGenerator.SetFloat("_initial", 0.0f);
+					TerrainGenerator.SetBool("_random", false);
+
+					var size = Size;
+					TerrainGenerator.Dispatch(main, size, size, size);
+				}
+			}
+		}
+
 		public void Update(Vector3 center, float radius, float delta)
 		{
 			lock (Sync)
