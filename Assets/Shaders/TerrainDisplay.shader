@@ -16,11 +16,11 @@
 			
 			#pragma vertex vert
 			#pragma fragment frag
-
+			
 			#include "UnityCG.cginc"
 			#include "Lighting.cginc"
 			#include "UnityLightingCommon.cginc"
-
+			
 			struct vertex
 			{
 				float4 position: POSITION;
@@ -54,7 +54,7 @@
 				return f;
 			}
 
-			fixed4 frag(fragment f) : SV_Target
+			fixed4 frag(fragment f): SV_Target
 			{
 				fixed3 col = fixed3(hsv2rgb(float3(0.75 * f.world_position.y / _Scale, 1.0, 1.0)).xyz);
 				

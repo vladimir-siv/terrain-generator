@@ -17,54 +17,6 @@ public class TerrainCreatorController : MonoBehaviour
 	private GameObject Brush { get; set; }
 	private Material BrushMaterial { get; set; }
 
-	private void Awake()
-	{
-		if (tag == "Terrain") return;
-		Debug.Log("Awake debug enabled!");
-
-		var granularity = 2;
-		var x = 1; var y = 1; var z = 1;
-		var radius = 1f;
-		var delta = +5.0f;
-
-		using (var terrain = new Terrain())
-		{
-			terrain.GenerateEmpty(0.5f, 1f);
-			terrain.Gridify(granularity);
-			terrain.Update(new Vector3(terrain.Step * x, terrain.Step * y, terrain.Step * z), radius, delta);
-			terrain.Calculate();
-
-			var values_size = terrain.Size;
-			var target_size = terrain.Granularity + 1;
-			values_size = values_size * values_size * values_size;
-			target_size = target_size * target_size * target_size;
-
-			var values = new float[values_size];
-			var targets = new Vector3[target_size];
-			var target_values = new float[target_size];
-
-			terrain.GetValues(values);
-			terrain.GetTargets(targets);
-			terrain.GetTargetValues(target_values);
-
-			System.IO.File.WriteAllLines
-			(
-				System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), @"logs\values.txt"),
-				System.Linq.Enumerable.Select(values, v => v.ToString("F2"))
-			);
-			System.IO.File.WriteAllLines
-			(
-				System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), @"logs\targets.txt"),
-				System.Linq.Enumerable.Select(targets, v => v.ToString())
-			);
-			System.IO.File.WriteAllLines
-			(
-				System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), @"logs\target_values.txt"),
-				System.Linq.Enumerable.Select(target_values, v => v.ToString("F2"))
-			);
-		}
-	}
-
 	private void GenerateTerrain(bool empty = true, int terrainGranularity = 0, float terrainStep = 0.0f, float terrainScale = 0.0f)
 	{
 		if (terrainGranularity <= 0) terrainGranularity = TerrainGranularity;
@@ -79,6 +31,10 @@ public class TerrainCreatorController : MonoBehaviour
 		TerrainScale = terrainScale;
 
 		ObservedTerrain.Gridify(terrainGranularity);
+
+		TerrainMesh.triangles = null;
+		TerrainMesh.vertices = null;
+		TerrainMesh.normals = null;
 	}
 
 	private void Start()
@@ -111,15 +67,6 @@ public class TerrainCreatorController : MonoBehaviour
 		var center = cam.ScreenToWorldPoint(new Vector3(mouse.x, mouse.y, Vector3.Distance(cam.transform.position, transform.position) + BrushZCorretion));
 		var alpha = 0.0f;
 
-		// Generate/Clear complete terrain
-		var gen = Input.GetKeyDown(KeyCode.G);
-		var clr = Input.GetKeyDown(KeyCode.C);
-		if (gen ^ clr)
-		{
-			if (gen) GenerateTerrain(false);
-			if (clr) GenerateTerrain(true);
-		}
-
 		// Terrain granularity adjustment
 		var incgran = Input.GetKeyDown(KeyCode.UpArrow);
 		var decgran = Input.GetKeyDown(KeyCode.DownArrow);
@@ -138,8 +85,8 @@ public class TerrainCreatorController : MonoBehaviour
 			alpha = 0.3f;
 
 			// Adjust brush
-			if (Input.GetKey(KeyCode.KeypadPlus)) BrushRadius += 0.01f;
-			if (Input.GetKey(KeyCode.KeypadMinus)) BrushRadius -= 0.01f;
+			if (Input.GetKey(KeyCode.Q)) BrushRadius += 0.01f;
+			if (Input.GetKey(KeyCode.E)) BrushRadius -= 0.01f;
 			if (BrushRadius <= 0.1f) BrushRadius = 0.1f;
 			BrushZCorretion += Input.mouseScrollDelta.y / 10.0f;
 

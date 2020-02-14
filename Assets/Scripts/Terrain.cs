@@ -269,7 +269,7 @@ namespace TerrainGenerator
 				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
 				if (values == null) throw new ArgumentNullException(nameof(values));
 				if (values.Length != Values.count) throw new ArgumentException($"Array '{nameof(values)}' has invalid size.");
-
+				
 				Values.GetData(values);
 			}
 		}

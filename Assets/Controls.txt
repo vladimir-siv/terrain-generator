@@ -8,10 +8,8 @@ MouseButton_Forward		-	Fly up
 MouseButton_Back		-	Fly down
 MouseWheel				-	Rotate Camera
 MouseWheelScroll		-	BrushZCorrection
-+						-	Increase brush Radius
--						-	Decrease brush Radius
+Q						-	Increase brush Radius
+E						-	Decrease brush Radius
 R						-	Reset brush ZCorrection & Radius
 ArrowUp					-	Increase terrain granularity
 ArrowDown				-	Decrease terrain granularity
-G						-	Generate random complete terrain
-C						-	Clear (reset) complete terrain
