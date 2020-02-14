@@ -45,6 +45,10 @@ public class TerrainInspector : EditorWindow
 	private byte? RenderedCubeState = null;
 	private bool VerboseRenderCube = false;
 
+	private Vector3[] Corners = null;
+	private bool[] Negatives = null;
+	private GameObject[] IndicationSpheres = null;
+
 	private void Refresh()
 	{
 		Controller = CurrentController;
@@ -133,7 +137,21 @@ public class TerrainInspector : EditorWindow
 
 	private void Update()
 	{
-		if (EditorApplication.isPlaying && !EditorApplication.isPaused) Repaint();
+		if (EditorApplication.isPlaying && !EditorApplication.isPaused)
+		{
+			if (RenderedCubeState == null && IndicationSpheres != null)
+			{
+				for (var i = 0; i < IndicationSpheres.Length; ++i)
+				{
+					if (IndicationSpheres[i] != null && IndicationSpheres[i].activeSelf)
+					{
+						IndicationSpheres[i].SetActive(false);
+					}
+				}
+			}
+
+			Repaint();
+		}
 	}
 
 	private void GenerateTerrain(bool demanded, bool empty = true, int terrainGranularity = 0, float terrainStep = 0.0f, float terrainScale = 0.0f)
@@ -225,6 +243,14 @@ public class TerrainInspector : EditorWindow
 
 	private void RenderCube()
 	{
+		GameObject CreateSphere()
+		{
+			var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+			Destroy(sphere.GetComponent<SphereCollider>());
+			sphere.GetComponent<MeshRenderer>().material.shader = Shader.Find("Unlit/ColorBlend");
+			return sphere;
+		}
+
 		var terrain = ObservedTerrain;
 		var mesh = TerrainMesh;
 
@@ -242,15 +268,34 @@ public class TerrainInspector : EditorWindow
 		if (terrain.Step != scale) GenerateTerrain(demanded: false, true, 1, scale, scale);
 		if (terrain.Granularity != 1) terrain.Gridify(1);
 
+		if (Corners == null || Corners.Length == 0) Corners = new Vector3[8];
+		if (Negatives == null || Negatives.Length == 0) Negatives = new bool[8];
+		if (IndicationSpheres == null || IndicationSpheres.Length == 0) IndicationSpheres = new GameObject[8];
+		
+		Corners[0] = new Vector3(scale * 0f, scale * 0f, scale * 0f);
+		Corners[1] = new Vector3(scale * 1f, scale * 0f, scale * 0f);
+		Corners[2] = new Vector3(scale * 1f, scale * 0f, scale * 1f);
+		Corners[3] = new Vector3(scale * 0f, scale * 0f, scale * 1f);
+		Corners[4] = new Vector3(scale * 0f, scale * 1f, scale * 0f);
+		Corners[5] = new Vector3(scale * 1f, scale * 1f, scale * 0f);
+		Corners[6] = new Vector3(scale * 1f, scale * 1f, scale * 1f);
+		Corners[7] = new Vector3(scale * 0f, scale * 1f, scale * 1f);
+
 		terrain.Clear();
-		terrain.Update(new Vector3(scale * 0f, scale * 0f, scale * 0f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 0)) != 0));
-		terrain.Update(new Vector3(scale * 1f, scale * 0f, scale * 0f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 1)) != 0));
-		terrain.Update(new Vector3(scale * 1f, scale * 0f, scale * 1f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 2)) != 0));
-		terrain.Update(new Vector3(scale * 0f, scale * 0f, scale * 1f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 3)) != 0));
-		terrain.Update(new Vector3(scale * 0f, scale * 1f, scale * 0f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 4)) != 0));
-		terrain.Update(new Vector3(scale * 1f, scale * 1f, scale * 0f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 5)) != 0));
-		terrain.Update(new Vector3(scale * 1f, scale * 1f, scale * 1f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 6)) != 0));
-		terrain.Update(new Vector3(scale * 0f, scale * 1f, scale * 1f), 0.1f, +1f + -2f * Convert.ToInt32((CubeState & (1 << 7)) != 0));
+
+		for (var i = 0; i < Corners.Length; ++i)
+		{
+			var sphere = IndicationSpheres[i];
+			if (sphere == null) IndicationSpheres[i] = sphere = CreateSphere();
+			Negatives[i] = (CubeState & (1 << i)) != 0;
+			terrain.Update(Corners[i], 0.1f, +2f * (1 - Convert.ToInt32(Negatives[i])));
+			sphere.transform.position = new Vector3(Corners[i].z, Corners[i].y, Corners[i].x);
+			sphere.transform.localScale = new Vector3(scale / 10f, scale / 10f, scale / 10f);
+			var material = sphere.GetComponent<MeshRenderer>().material;
+			var color = Negatives[i] ? new Color(1.0f, 0.0f, 0.0f, 0.3f) : new Color(0.0f, 0.0f, 1.0f, 0.3f);
+			material.SetColor("_Color", color);
+			sphere.SetActive(true);
+		}
 
 		terrain.Calculate();
 		terrain.Triangulate();

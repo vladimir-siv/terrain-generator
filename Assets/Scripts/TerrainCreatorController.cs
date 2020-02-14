@@ -139,7 +139,7 @@ public class TerrainCreatorController : MonoBehaviour
 		// Apply brush adjustment
 		Brush.transform.position = center;
 		Brush.transform.localScale = new Vector3(BrushRadius, BrushRadius, BrushRadius);
-		BrushMaterial.SetColor("_Color", new Color(1.0f, 0.0f, 0.0f, alpha));
+		BrushMaterial.SetColor("_Color", new Color(0.75f, 0.75f, 0.75f, alpha));
 	}
 
 	private void OnDestroy()
