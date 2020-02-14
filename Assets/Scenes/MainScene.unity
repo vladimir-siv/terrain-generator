@@ -233,6 +233,7 @@ MonoBehaviour:
   TerrainScale: 10
   BrushRadius: 1
   BrushZCorretion: 0
+  BrushDelta: 0.1
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0

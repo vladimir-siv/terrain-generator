@@ -4,6 +4,7 @@ using System.Reflection;
 using System.IO;
 using UnityEngine;
 using UnityEditor;
+using TerrainGenerator.Inspector;
 using Terrain = TerrainGenerator.Terrain;
 
 public class TerrainInspector : EditorWindow
@@ -45,9 +46,10 @@ public class TerrainInspector : EditorWindow
 	private byte? RenderedCubeState = null;
 	private bool VerboseRenderCube = false;
 
+	private Terrain ObservedTerrainCache = null;
 	private Vector3[] Corners = null;
-	private bool[] Negatives = null;
-	private GameObject[] IndicationSpheres = null;
+	private float[] CornerValues = null;
+	private IndicationCube[] Indicators = null;
 
 	private void Refresh()
 	{
@@ -139,13 +141,36 @@ public class TerrainInspector : EditorWindow
 	{
 		if (EditorApplication.isPlaying && !EditorApplication.isPaused)
 		{
-			if (RenderedCubeState == null && IndicationSpheres != null)
+			if (RenderedCubeState == null && Indicators != null)
 			{
-				for (var i = 0; i < IndicationSpheres.Length; ++i)
+				for (var i = 0; i < Indicators.Length; ++i)
 				{
-					if (IndicationSpheres[i] != null && IndicationSpheres[i].activeSelf)
+					if (Indicators[i] != null && Indicators[i].Reference.activeSelf)
 					{
-						IndicationSpheres[i].SetActive(false);
+						Indicators[i].Reference.SetActive(false);
+					}
+				}
+			}
+
+			if (RenderCubeState)
+			{
+				if (CornerValues == null || CornerValues.Length == 0) CornerValues = new float[8];
+				if (ObservedTerrainCache == null) ObservedTerrainCache = ObservedTerrain;
+				ObservedTerrainCache.GetTargetValues(CornerValues);
+
+				for (var i = 0; i < Indicators.Length; ++i)
+				{
+					switch (i)
+					{
+						case 0: Indicators[i].Value = CornerValues[0]; break;
+						case 1: Indicators[i].Value = CornerValues[4]; break;
+						case 2: Indicators[i].Value = CornerValues[5]; break;
+						case 3: Indicators[i].Value = CornerValues[1]; break;
+						case 4: Indicators[i].Value = CornerValues[2]; break;
+						case 5: Indicators[i].Value = CornerValues[6]; break;
+						case 6: Indicators[i].Value = CornerValues[7]; break;
+						case 7: Indicators[i].Value = CornerValues[3]; break;
+						default: break;
 					}
 				}
 			}
@@ -243,14 +268,6 @@ public class TerrainInspector : EditorWindow
 
 	private void RenderCube()
 	{
-		GameObject CreateSphere()
-		{
-			var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-			Destroy(sphere.GetComponent<SphereCollider>());
-			sphere.GetComponent<MeshRenderer>().material.shader = Shader.Find("Unlit/ColorBlend");
-			return sphere;
-		}
-
 		var terrain = ObservedTerrain;
 		var mesh = TerrainMesh;
 
@@ -269,8 +286,7 @@ public class TerrainInspector : EditorWindow
 		if (terrain.Granularity != 1) terrain.Gridify(1);
 
 		if (Corners == null || Corners.Length == 0) Corners = new Vector3[8];
-		if (Negatives == null || Negatives.Length == 0) Negatives = new bool[8];
-		if (IndicationSpheres == null || IndicationSpheres.Length == 0) IndicationSpheres = new GameObject[8];
+		if (Indicators == null || Indicators.Length == 0) Indicators = new IndicationCube[8];
 		
 		Corners[0] = new Vector3(scale * 0f, scale * 0f, scale * 0f);
 		Corners[1] = new Vector3(scale * 1f, scale * 0f, scale * 0f);
@@ -285,16 +301,14 @@ public class TerrainInspector : EditorWindow
 
 		for (var i = 0; i < Corners.Length; ++i)
 		{
-			var sphere = IndicationSpheres[i];
-			if (sphere == null) IndicationSpheres[i] = sphere = CreateSphere();
-			Negatives[i] = (CubeState & (1 << i)) != 0;
-			terrain.Update(Corners[i], 0.1f, +2f * (1 - Convert.ToInt32(Negatives[i])));
-			sphere.transform.position = new Vector3(Corners[i].z, Corners[i].y, Corners[i].x);
-			sphere.transform.localScale = new Vector3(scale / 10f, scale / 10f, scale / 10f);
-			var material = sphere.GetComponent<MeshRenderer>().material;
-			var color = Negatives[i] ? new Color(1.0f, 0.0f, 0.0f, 0.3f) : new Color(0.0f, 0.0f, 1.0f, 0.3f);
-			material.SetColor("_Color", color);
-			sphere.SetActive(true);
+			var indicator = Indicators[i];
+			if (indicator == null) Indicators[i] = indicator = new IndicationCube();
+			var delta = +2f * (1 - Convert.ToInt32((CubeState & (1 << i)) != 0));
+			terrain.Update(Corners[i], 0.1f, delta);
+			indicator.Value = delta + -1.0f;
+			indicator.Reference.transform.position = new Vector3(Corners[i].z, Corners[i].y, Corners[i].x);
+			indicator.Reference.transform.localScale = new Vector3(scale / 10f, scale / 10f, scale / 10f);
+			indicator.Reference.SetActive(true);
 		}
 
 		terrain.Calculate();
