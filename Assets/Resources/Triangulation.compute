@@ -24,7 +24,8 @@ void append_triangle(float3 p1, float3 p2, float3 p3)
 	uint index;
 	InterlockedAdd(_counters[0], 3, index);
 
-	float3 normal = normalize(cross(p2 - p1, p3 - p1));
+	// Minus because it's front culled
+	float3 normal = -normalize(cross(p2 - p1, p3 - p1));
 
 	_vertices[index + 0] = p1;
 	_vertices[index + 1] = p2;

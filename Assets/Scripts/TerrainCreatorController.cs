@@ -9,6 +9,7 @@ public class TerrainCreatorController : MonoBehaviour
 	[SerializeField] private float TerrainScale = 10.0f;
 	[SerializeField] private float BrushRadius = 1.0f;
 	[SerializeField] private float BrushZCorretion = 0.0f;
+	[SerializeField] private float BrushDelta = 0.1f;
 
 	private Terrain ObservedTerrain { get; set; }
 	private Mesh TerrainMesh { get; set; }
@@ -123,8 +124,8 @@ public class TerrainCreatorController : MonoBehaviour
 			var clear = Input.GetMouseButton(1);
 			if (build ^ clear)
 			{
-				if (build) ObservedTerrain.Update(new Vector3(center.z, center.y, center.x), BrushRadius, +1f);
-				if (clear) ObservedTerrain.Update(new Vector3(center.z, center.y, center.x), BrushRadius, -1f);
+				if (build) ObservedTerrain.Update(new Vector3(center.z, center.y, center.x), BrushRadius, +BrushDelta);
+				if (clear) ObservedTerrain.Update(new Vector3(center.z, center.y, center.x), BrushRadius, -BrushDelta);
 				ObservedTerrain.Calculate();
 				ObservedTerrain.Triangulate();
 				ObservedTerrain.GetMeshData(out var vertices, out var indices, out var normals);

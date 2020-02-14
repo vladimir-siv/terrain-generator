@@ -38,10 +38,10 @@ namespace TerrainGenerator
 		public void GenerateRandom(float step, float scale, float range) => GenerateRandom(step, scale, -range / 2.0f, +range / 2.0f);
 		public void GenerateRandom(float step, float scale, float min, float max) => Generate(step, scale, min, max, null);
 
-		public void GenerateEmpty() => GenerateEmpty(Step, Scale, Min, Max, 0.0f);
-		public void GenerateEmpty(float step) => GenerateEmpty(step, Scale, Min, Max, 0.0f);
-		public void GenerateEmpty(float step, float scale) => GenerateEmpty(step, scale, Min, Max, 0.0f);
-		public void GenerateEmpty(float step, float scale, float range) => GenerateEmpty(step, scale, -range / 2.0f, +range / 2.0f, 0.0f);
+		public void GenerateEmpty() => GenerateEmpty(Step, Scale, Min, Max, -1.0f);
+		public void GenerateEmpty(float step) => GenerateEmpty(step, Scale, Min, Max, -1.0f);
+		public void GenerateEmpty(float step, float scale) => GenerateEmpty(step, scale, Min, Max, -1.0f);
+		public void GenerateEmpty(float step, float scale, float range) => GenerateEmpty(step, scale, -range / 2.0f, +range / 2.0f, -1.0f);
 		public void GenerateEmpty(float step, float scale, float range, float initial) => GenerateEmpty(step, scale, -range / 2.0f, +range / 2.0f, initial);
 		public void GenerateEmpty(float step, float scale, float min, float max, float initial) => Generate(step, scale, min, max, initial);
 
@@ -51,8 +51,8 @@ namespace TerrainGenerator
 			{
 				if (step <= 0.0f) throw new ArgumentException(nameof(step));
 				if (scale <= 0.0f) throw new ArgumentException(nameof(scale));
-				if (min >= 0.0f) throw new ArgumentException(nameof(step));
-				if (max <= 0.0f) throw new ArgumentException(nameof(step));
+				if (min > -1.0f) throw new ArgumentException(nameof(step));
+				if (max < +1.0f) throw new ArgumentException(nameof(step));
 				if (initial != null && initial < min || max < initial) throw new ArgumentException(nameof(step));
 
 				Step = step;
@@ -87,7 +87,7 @@ namespace TerrainGenerator
 					TerrainGenerator.SetFloat("_scale", Scale);
 					TerrainGenerator.SetFloat("_min", Min);
 					TerrainGenerator.SetFloat("_max", Max);
-					TerrainGenerator.SetFloat("_initial", initial ?? 0.0f);
+					TerrainGenerator.SetFloat("_initial", initial ?? -1.0f);
 					TerrainGenerator.SetBool("_random", initial == null);
 
 					TerrainGenerator.Dispatch(main, size, size, size);
@@ -110,7 +110,7 @@ namespace TerrainGenerator
 					TerrainGenerator.SetFloat("_scale", Scale);
 					TerrainGenerator.SetFloat("_min", Min);
 					TerrainGenerator.SetFloat("_max", Max);
-					TerrainGenerator.SetFloat("_initial", 0.0f);
+					TerrainGenerator.SetFloat("_initial", -1.0f);
 					TerrainGenerator.SetBool("_random", false);
 
 					var size = Size;

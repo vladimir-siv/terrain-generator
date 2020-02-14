@@ -20,14 +20,16 @@ public class TerrainInspector : EditorWindow
 	private FieldInfo PropTerrainScale = null;
 	private FieldInfo PropBrushRadius = null;
 	private FieldInfo PropBrushZCorretion = null;
+	private FieldInfo PropBrushDelta = null;
 	private PropertyInfo PropObservedTerrain = null;
 	private PropertyInfo PropTerrainMesh = null;
 
-	private string TerrainGranularity => PropTerrainGranularity?.GetValue(Controller)?.ToString() ?? "Try refreshing";
-	private string TerrainStep => PropTerrainStep?.GetValue(Controller)?.ToString() ?? "Try refreshing";
-	private string TerrainScale => PropTerrainScale?.GetValue(Controller)?.ToString() ?? "Try refreshing";
-	private string BrushRadius => PropBrushRadius?.GetValue(Controller)?.ToString() ?? "Try refreshing";
-	private string BrushZCorretion => PropBrushZCorretion?.GetValue(Controller)?.ToString() ?? "Try refreshing";
+	private string TerrainGranularity => PropTerrainGranularity?.GetValue(Controller)?.ToString() ?? "[Try refreshing]";
+	private string TerrainStep => PropTerrainStep?.GetValue(Controller)?.ToString() ?? "[Try refreshing]";
+	private string TerrainScale => PropTerrainScale?.GetValue(Controller)?.ToString() ?? "[Try refreshing]";
+	private string BrushRadius => PropBrushRadius?.GetValue(Controller)?.ToString() ?? "[Try refreshing]";
+	private string BrushZCorretion => PropBrushZCorretion?.GetValue(Controller)?.ToString() ?? "[Try refreshing]";
+	private float BrushDelta { get => (float)PropBrushDelta.GetValue(Controller); set => PropBrushDelta.SetValue(Controller, value); }
 	private Terrain ObservedTerrain => (Terrain)PropObservedTerrain?.GetValue(Controller);
 	private Mesh TerrainMesh => (Mesh)PropTerrainMesh?.GetValue(Controller);
 
@@ -54,6 +56,7 @@ public class TerrainInspector : EditorWindow
 		PropTerrainScale = ctype.GetField("TerrainScale", BindingFlags.Instance | BindingFlags.NonPublic);
 		PropBrushRadius = ctype.GetField("BrushRadius", BindingFlags.Instance | BindingFlags.NonPublic);
 		PropBrushZCorretion = ctype.GetField("BrushZCorretion", BindingFlags.Instance | BindingFlags.NonPublic);
+		PropBrushDelta = ctype.GetField("BrushDelta", BindingFlags.Instance | BindingFlags.NonPublic);
 		PropObservedTerrain = ctype.GetProperty("ObservedTerrain", BindingFlags.Instance | BindingFlags.NonPublic);
 		PropTerrainMesh = ctype.GetProperty("TerrainMesh", BindingFlags.Instance | BindingFlags.NonPublic);
 
@@ -77,6 +80,8 @@ public class TerrainInspector : EditorWindow
 		GUILayout.Label($"Terrain Scale:\t\t{TerrainScale}");
 		GUILayout.Label($"Brush Radius:\t\t{BrushRadius}");
 		GUILayout.Label($"Brush Z Correction:\t{BrushZCorretion}");
+		if (PropBrushDelta != null) BrushDelta = EditorGUILayout.Slider("Brush Delta:", BrushDelta, 0.01f, 1.0f);
+		else GUILayout.Label("Brush Delta:\t\t[Try refreshing]");
 
 		// Terrain generation
 		GUILayout.Space(10f);
