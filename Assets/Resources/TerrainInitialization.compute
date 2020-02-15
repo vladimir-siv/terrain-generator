@@ -1,0 +1,21 @@
+﻿#pragma kernel main
+
+RWStructuredBuffer<float> _values;
+
+float _step;
+float _scale;
+float _min;
+float _max;
+float _value;
+
+[numthreads(1, 1, 1)]
+void main(uint3 id: SV_DispatchThreadID)
+{
+	uint size1 = (uint)ceil(_scale / _step) + 1;
+	uint size2 = size1 * size1;
+	uint size3 = size2 * size1;
+
+	_value = min(_value, _max);
+	_value = max(_value, _min);
+	_values[id.x + id.y * size1 + id.z * size2] = _value;
+}

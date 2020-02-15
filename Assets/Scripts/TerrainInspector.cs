@@ -97,7 +97,7 @@ public class TerrainInspector : EditorWindow
 		NewTerrainStep = EditorGUILayout.FloatField("Terrain Step:", NewTerrainStep);
 		NewTerrainScale = EditorGUILayout.FloatField("Terrain Scale:", NewTerrainScale);
 		GUI.enabled = Application.isPlaying;
-		if (GUILayout.Button("Generate")) GenerateTerrain(demanded: true, !NewTerrainRandom, NewTerrainGranularity, NewTerrainStep, NewTerrainScale);
+		if (GUILayout.Button("Generate")) GenerateTerrain(demanded: true, NewTerrainRandom ? UnityEngine.Random.Range(2, 8) : 0, NewTerrainGranularity, NewTerrainStep, NewTerrainScale);
 		GUI.enabled = true;
 
 		// Brush actions
@@ -179,11 +179,11 @@ public class TerrainInspector : EditorWindow
 		}
 	}
 
-	private void GenerateTerrain(bool demanded, bool empty = true, int terrainGranularity = 0, float terrainStep = 0.0f, float terrainScale = 0.0f)
+	private void GenerateTerrain(bool demanded, int randomlayers = 0, int terrainGranularity = 0, float terrainStep = 0.0f, float terrainScale = 0.0f)
 	{
 		if (demanded) RenderCubeState = false;
 		var generator = Controller.GetType().GetMethod("GenerateTerrain", BindingFlags.Instance | BindingFlags.NonPublic);
-		generator.Invoke(Controller, new object[] { empty, terrainGranularity, terrainStep, terrainScale });
+		generator.Invoke(Controller, new object[] { randomlayers, terrainGranularity, terrainStep, terrainScale });
 	}
 
 	private void ApplyBrush(Vector3 brushPosition, float brushRadius, float brushDelta)
@@ -282,7 +282,7 @@ public class TerrainInspector : EditorWindow
 		RenderedCubeState = CubeState;
 
 		var scale = terrain.Scale;
-		if (terrain.Step != scale) GenerateTerrain(demanded: false, true, 1, scale, scale);
+		if (terrain.Step != scale) GenerateTerrain(demanded: false, 0, 1, scale, scale);
 		if (terrain.Granularity != 1) terrain.Gridify(1);
 
 		if (Corners == null || Corners.Length == 0) Corners = new Vector3[8];

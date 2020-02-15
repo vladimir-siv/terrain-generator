@@ -5,7 +5,7 @@ namespace TerrainGenerator
 {
 	public sealed class Terrain : IDisposable
 	{
-		private static readonly ComputeShader TerrainGenerator = Resources.Load<ComputeShader>("TerrainGeneration");
+		private static readonly ComputeShader TerrainInitializator = Resources.Load<ComputeShader>("TerrainInitialization");
 		private static readonly ComputeShader TerrainAdjustor = Resources.Load<ComputeShader>("TerrainAdjustment");
 		private static readonly ComputeShader Gridificator = Resources.Load<ComputeShader>("Gridification");
 		private static readonly ComputeShader TrilinearInterpolator = Resources.Load<ComputeShader>("TrilinearInterpolation");
@@ -32,20 +32,23 @@ namespace TerrainGenerator
 		public int Granularity { get; private set; } = 0;
 		public int Size => (int)Math.Ceiling(Scale / Step) + 1;
 
-		public void GenerateRandom() => GenerateRandom(Step, Scale, Min, Max);
-		public void GenerateRandom(float step) => GenerateRandom(step, Scale, Min, Max);
-		public void GenerateRandom(float step, float scale) => GenerateRandom(step, scale, Min, Max);
-		public void GenerateRandom(float step, float scale, float range) => GenerateRandom(step, scale, -range / 2.0f, +range / 2.0f);
-		public void GenerateRandom(float step, float scale, float min, float max) => Generate(step, scale, min, max, null);
+		public void GenerateRandom(int layers) => GenerateRandom(Step, Scale, Min, Max, layers);
+		public void GenerateRandom(float step, float scale, int layers) => GenerateRandom(step, scale, Min, Max, layers);
+		public void GenerateRandom() => GenerateRandom(Step, Scale, Min, Max, 4);
+		public void GenerateRandom(float step) => GenerateRandom(step, Scale, Min, Max, 4);
+		public void GenerateRandom(float step, float scale) => GenerateRandom(step, scale, Min, Max, 4);
+		public void GenerateRandom(float step, float scale, float range) => GenerateRandom(step, scale, -range / 2.0f, +range / 2.0f, 4);
+		public void GenerateRandom(float step, float scale, float range, int layers) => GenerateRandom(step, scale, -range / 2.0f, +range / 2.0f, layers);
+		public void GenerateRandom(float step, float scale, float min, float max, int layers) => Generate(step, scale, min, max, layers, true);
 
 		public void GenerateEmpty() => GenerateEmpty(Step, Scale, Min, Max, -1.0f);
 		public void GenerateEmpty(float step) => GenerateEmpty(step, Scale, Min, Max, -1.0f);
 		public void GenerateEmpty(float step, float scale) => GenerateEmpty(step, scale, Min, Max, -1.0f);
 		public void GenerateEmpty(float step, float scale, float range) => GenerateEmpty(step, scale, -range / 2.0f, +range / 2.0f, -1.0f);
 		public void GenerateEmpty(float step, float scale, float range, float initial) => GenerateEmpty(step, scale, -range / 2.0f, +range / 2.0f, initial);
-		public void GenerateEmpty(float step, float scale, float min, float max, float initial) => Generate(step, scale, min, max, initial);
+		public void GenerateEmpty(float step, float scale, float min, float max, float initial) => Generate(step, scale, min, max, initial, false);
 
-		public void Generate(float step, float scale, float min, float max, float? initial)
+		public void Generate(float step, float scale, float min, float max, float factor, bool random)
 		{
 			lock (Sync)
 			{
@@ -53,7 +56,8 @@ namespace TerrainGenerator
 				if (scale <= 0.0f) throw new ArgumentException(nameof(scale));
 				if (min > -1.0f) throw new ArgumentException(nameof(step));
 				if (max < +1.0f) throw new ArgumentException(nameof(step));
-				if (initial != null && initial < min || max < initial) throw new ArgumentException(nameof(step));
+
+				if ((random && factor < 1.0f) || (!random && factor < min || max < factor)) throw new ArgumentException(nameof(step));
 
 				Step = step;
 				Scale = scale;
@@ -78,20 +82,21 @@ namespace TerrainGenerator
 				Normals = null;
 				if (Counters == null) Counters = new ComputeBuffer(1, sizeof(uint));
 
-				lock (TerrainGenerator)
+				lock (TerrainInitializator)
 				{
-					var main = TerrainGenerator.FindKernel("main");
+					var main = TerrainInitializator.FindKernel("main");
 
-					TerrainGenerator.SetBuffer(main, "_values", Values);
-					TerrainGenerator.SetFloat("_step", Step);
-					TerrainGenerator.SetFloat("_scale", Scale);
-					TerrainGenerator.SetFloat("_min", Min);
-					TerrainGenerator.SetFloat("_max", Max);
-					TerrainGenerator.SetFloat("_initial", initial ?? -1.0f);
-					TerrainGenerator.SetBool("_random", initial == null);
+					TerrainInitializator.SetBuffer(main, "_values", Values);
+					TerrainInitializator.SetFloat("_step", Step);
+					TerrainInitializator.SetFloat("_scale", Scale);
+					TerrainInitializator.SetFloat("_min", Min);
+					TerrainInitializator.SetFloat("_max", Max);
+					TerrainInitializator.SetFloat("_value", random ? -1.0f : factor);
 
-					TerrainGenerator.Dispatch(main, size, size, size);
+					TerrainInitializator.Dispatch(main, size, size, size);
 				}
+
+				if (random) Randomize((int)factor);
 			}
 		}
 
@@ -101,20 +106,60 @@ namespace TerrainGenerator
 			{
 				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
 
-				lock (TerrainGenerator)
+				lock (TerrainInitializator)
 				{
-					var main = TerrainGenerator.FindKernel("main");
+					var main = TerrainInitializator.FindKernel("main");
 
-					TerrainGenerator.SetBuffer(main, "_values", Values);
-					TerrainGenerator.SetFloat("_step", Step);
-					TerrainGenerator.SetFloat("_scale", Scale);
-					TerrainGenerator.SetFloat("_min", Min);
-					TerrainGenerator.SetFloat("_max", Max);
-					TerrainGenerator.SetFloat("_initial", -1.0f);
-					TerrainGenerator.SetBool("_random", false);
+					TerrainInitializator.SetBuffer(main, "_values", Values);
+					TerrainInitializator.SetFloat("_step", Step);
+					TerrainInitializator.SetFloat("_scale", Scale);
+					TerrainInitializator.SetFloat("_min", Min);
+					TerrainInitializator.SetFloat("_max", Max);
+					TerrainInitializator.SetFloat("_value", -1.0f);
 
 					var size = Size;
-					TerrainGenerator.Dispatch(main, size, size, size);
+					TerrainInitializator.Dispatch(main, size, size, size);
+				}
+			}
+		}
+
+		public void Randomize(int layers)
+		{
+			lock (Sync)
+			{
+				if (layers <= 0) throw new ArgumentException("Number of layers must be a positive number.");
+
+				var delta_min = 1.0f + Min / 2.0f;
+				var delta_max = 1.0f + Max / 2.0f;
+				var layers_m1 = (float)Math.Max(layers - 1, 1);
+
+				for (var l = 1; l <= layers; ++l)
+				{
+					var count = l * l;
+					var factor = Scale / l;
+					var halffactor = factor / 2.0f;
+					var step = Scale / (l + 1);
+					var halfstep = step / 2.0f;
+					var layercap = (l - 1) / layers_m1;
+					var ycorrect = (l - 1) * Scale / (2.5f * layers);
+					var lfactor = Math.Min(l - 1.0f, 1.0f);
+					if (ycorrect == 0.0f) ycorrect += 0.25f * Scale;
+					
+					for (var i = 0; i < count; ++i)
+					{
+						var center = new Vector3
+						(
+							step * (1 + i / l) + UnityEngine.Random.Range(-halfstep, +halfstep),
+							ycorrect + -1.25f * factor + lfactor * UnityEngine.Random.Range(-halffactor, +halffactor),
+							step * (1 + i % l) + UnityEngine.Random.Range(-halfstep, +halfstep)
+						);
+
+						var radius = factor + UnityEngine.Random.Range(-halffactor * lfactor, +halffactor);
+
+						var delta = UnityEngine.Random.Range(delta_min * layercap, delta_max);
+
+						Update(center, radius, delta);
+					}
 				}
 			}
 		}

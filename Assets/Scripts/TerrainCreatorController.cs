@@ -18,14 +18,14 @@ public class TerrainCreatorController : MonoBehaviour
 	private GameObject Brush { get; set; }
 	private Material BrushMaterial { get; set; }
 
-	private void GenerateTerrain(bool empty = true, int terrainGranularity = 0, float terrainStep = 0.0f, float terrainScale = 0.0f)
+	private void GenerateTerrain(int randomlayers = 0, int terrainGranularity = 0, float terrainStep = 0.0f, float terrainScale = 0.0f)
 	{
 		if (terrainGranularity <= 0) terrainGranularity = TerrainGranularity;
 		if (terrainStep <= 0.0f) terrainStep = TerrainStep;
 		if (terrainScale <= 0.0f) terrainScale = TerrainScale;
 
-		if (empty) ObservedTerrain.GenerateEmpty(terrainStep, terrainScale);
-		else ObservedTerrain.GenerateRandom(terrainStep, terrainScale);
+		if (randomlayers <= 0) ObservedTerrain.GenerateEmpty(terrainStep, terrainScale);
+		else ObservedTerrain.GenerateRandom(terrainStep, terrainScale, randomlayers);
 
 		TerrainGranularity = terrainGranularity;
 		TerrainStep = terrainStep;
@@ -34,7 +34,7 @@ public class TerrainCreatorController : MonoBehaviour
 		ObservedTerrain.Gridify(terrainGranularity);
 		TerrainMesh.Clear();
 
-		if (empty) return;
+		if (randomlayers <= 0) return;
 
 		ObservedTerrain.Calculate();
 		ObservedTerrain.Triangulate();
