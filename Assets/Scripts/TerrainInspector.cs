@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Globalization;
 using System.Reflection;
 using System.IO;
 using UnityEngine;
@@ -15,6 +16,9 @@ public class TerrainInspector : EditorWindow
 	private static TerrainCreatorController CurrentController => GameObject.FindGameObjectWithTag("Terrain")?.GetComponent<TerrainCreatorController>();
 
 	private TerrainCreatorController Controller = null;
+
+	private Terrain ObservedTerrainCache = null;
+	private Vector2 ScrollPosition = Vector2.zero;
 
 	private FieldInfo PropTerrainGranularity = null;
 	private FieldInfo PropTerrainStep = null;
@@ -34,10 +38,12 @@ public class TerrainInspector : EditorWindow
 	private Terrain ObservedTerrain => (Terrain)PropObservedTerrain?.GetValue(Controller);
 	private Mesh TerrainMesh => (Mesh)PropTerrainMesh?.GetValue(Controller);
 
-	private bool NewTerrainRandom = false;
 	private int NewTerrainGranularity = 50;
 	private float NewTerrainStep = 0.1f;
 	private float NewTerrainScale = 10.0f;
+	private bool NewTerrainRandom = false;
+	private float Height = 0.0f;
+	private float Value = 1.0f;
 	private Vector3 VirtualBrushPosition = new Vector3(0f, 0f, 0f);
 	private float VirtualBrushRadius = 0.1f;
 	private float VirtualBrushDelta = +1.0f;
@@ -46,7 +52,6 @@ public class TerrainInspector : EditorWindow
 	private byte? RenderedCubeState = null;
 	private bool VerboseRenderCube = false;
 
-	private Terrain ObservedTerrainCache = null;
 	private Vector3[] Corners = null;
 	private float[] CornerValues = null;
 	private IndicationCube[] Indicators = null;
@@ -66,21 +71,28 @@ public class TerrainInspector : EditorWindow
 		PropObservedTerrain = ctype.GetProperty("ObservedTerrain", BindingFlags.Instance | BindingFlags.NonPublic);
 		PropTerrainMesh = ctype.GetProperty("TerrainMesh", BindingFlags.Instance | BindingFlags.NonPublic);
 
+		ObservedTerrainCache = ObservedTerrain;
 		RenderedCubeState = null;
 	}
 
 	private void OnGUI()
 	{
+		var terrain = ObservedTerrain;
+
+		ScrollPosition = EditorGUILayout.BeginScrollView(ScrollPosition);
+
 		// Base options
 		if (Controller == null) Refresh();
 		GUILayout.Space(10f);
-		GUILayout.Label("Base options", EditorStyles.boldLabel);
+		GUILayout.Label("Base Options", EditorStyles.boldLabel);
 		if (GUILayout.Button("Refresh")) Refresh();
-		if (Controller == null) return;
+		if (Controller == null) goto end;
 
 		// Terrain properties
 		GUILayout.Space(10f);
 		GUILayout.Label("Terrain Properties", EditorStyles.boldLabel);
+		GUILayout.Label($"Terrain Function Min:\t{(EditorApplication.isPlaying ? (terrain?.Min.ToString("F2", CultureInfo.InvariantCulture) ?? "[Try refreshing]") : "[Available in play mode]")}");
+		GUILayout.Label($"Terrain Function Max:\t{(EditorApplication.isPlaying ? (terrain?.Max.ToString("+0.00", CultureInfo.InvariantCulture) ?? "[Try refreshing]") : "[Available in play mode]")}");
 		GUILayout.Label($"Terrain Granularity:\t{TerrainGranularity}");
 		GUILayout.Label($"Terrain Step:\t\t{TerrainStep}");
 		GUILayout.Label($"Terrain Scale:\t\t{TerrainScale}");
@@ -91,13 +103,28 @@ public class TerrainInspector : EditorWindow
 
 		// Terrain generation
 		GUILayout.Space(10f);
-		GUILayout.Label("Terrain generation", EditorStyles.boldLabel);
-		NewTerrainRandom = EditorGUILayout.ToggleLeft("Generate Random Terrain", NewTerrainRandom);
+		GUILayout.Label("Terrain Generation", EditorStyles.boldLabel);
 		NewTerrainGranularity = EditorGUILayout.IntField("Terrain Granularity:", NewTerrainGranularity);
 		NewTerrainStep = EditorGUILayout.FloatField("Terrain Step:", NewTerrainStep);
 		NewTerrainScale = EditorGUILayout.FloatField("Terrain Scale:", NewTerrainScale);
+		NewTerrainRandom = EditorGUILayout.ToggleLeft("Generate Random Terrain", NewTerrainRandom);
 		GUI.enabled = Application.isPlaying;
 		if (GUILayout.Button("Generate")) GenerateTerrain(demanded: true, NewTerrainRandom ? UnityEngine.Random.Range(2, 8) : 0, NewTerrainGranularity, NewTerrainStep, NewTerrainScale);
+		GUI.enabled = true;
+
+		// Terrain actions
+		GUILayout.Space(10f);
+		GUILayout.Label("Terrain Actions", EditorStyles.boldLabel);
+		GUI.enabled = Application.isPlaying;
+		if (terrain != null) Height = EditorGUILayout.Slider("Height:", Height, 0.0f, terrain.Scale);
+		GUI.enabled = true;
+		if (terrain == null) GUILayout.Label("Height:\t\t\t[Available in play mode]");
+		GUI.enabled = Application.isPlaying;
+		if (terrain != null) Value = EditorGUILayout.Slider("Value:", Value, terrain.Min, terrain.Max);
+		GUI.enabled = true;
+		if (terrain == null) GUILayout.Label("Value:\t\t\t[Available in play mode]");
+		GUI.enabled = Application.isPlaying;
+		if (GUILayout.Button("Flatten") && terrain != null) FlattenTerrain(Height, Value);
 		GUI.enabled = true;
 
 		// Brush actions
@@ -135,10 +162,15 @@ public class TerrainInspector : EditorWindow
 		GUILayout.EndHorizontal();
 		if (RenderCubeState) RenderCube();
 		else RenderedCubeState = null;
+
+	end:
+		EditorGUILayout.EndScrollView();
 	}
 
 	private void Update()
 	{
+		if (ObservedTerrainCache == null) ObservedTerrainCache = ObservedTerrain;
+
 		if (EditorApplication.isPlaying && !EditorApplication.isPaused)
 		{
 			if (RenderedCubeState == null && Indicators != null)
@@ -155,7 +187,6 @@ public class TerrainInspector : EditorWindow
 			if (RenderCubeState)
 			{
 				if (CornerValues == null || CornerValues.Length == 0) CornerValues = new float[8];
-				if (ObservedTerrainCache == null) ObservedTerrainCache = ObservedTerrain;
 				ObservedTerrainCache.GetTargetValues(CornerValues);
 
 				for (var i = 0; i < Indicators.Length; ++i)
@@ -175,7 +206,7 @@ public class TerrainInspector : EditorWindow
 				}
 			}
 
-			Repaint();
+			if (focusedWindow != this) Repaint();
 		}
 	}
 
@@ -184,6 +215,18 @@ public class TerrainInspector : EditorWindow
 		if (demanded) RenderCubeState = false;
 		var generator = Controller.GetType().GetMethod("GenerateTerrain", BindingFlags.Instance | BindingFlags.NonPublic);
 		generator.Invoke(Controller, new object[] { randomlayers, terrainGranularity, terrainStep, terrainScale });
+	}
+
+	private void FlattenTerrain(float height, float value)
+	{
+		ObservedTerrain.Flatten(height, value);
+		ObservedTerrain.Calculate();
+		ObservedTerrain.Triangulate();
+		ObservedTerrain.GetMeshData(out var vertices, out var indices, out var normals);
+		TerrainMesh.Clear();
+		TerrainMesh.vertices = vertices;
+		TerrainMesh.normals = normals;
+		TerrainMesh.triangles = indices;
 	}
 
 	private void ApplyBrush(Vector3 brushPosition, float brushRadius, float brushDelta)

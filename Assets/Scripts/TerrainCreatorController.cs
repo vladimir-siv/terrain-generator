@@ -104,7 +104,7 @@ public class TerrainCreatorController : MonoBehaviour
 		if (TerrainCollider.bounds.Contains(center))
 		{
 			// Display brush with some alpha
-			alpha = 0.3f;
+			alpha = 0.75f;
 
 			// Adjust brush
 			if (Input.GetKey(KeyCode.Q)) BrushRadius += 0.01f;

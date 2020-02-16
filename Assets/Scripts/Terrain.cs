@@ -123,6 +123,31 @@ namespace TerrainGenerator
 			}
 		}
 
+		public void Flatten(float height, float value)
+		{
+			lock (Sync)
+			{
+				if (Values == null) throw new InvalidOperationException("Terrain not generated. Call Generate() before this method.");
+				if (height < 0.0f || Scale < height) throw new ArgumentException($"Ylimit must be in range [0.00, {Scale:F2}]");
+				if (value < Min || Max < value) throw new ArgumentException($"Value must be in range [{Min}, {Max}].");
+				
+				lock (TerrainInitializator)
+				{
+					var main = TerrainInitializator.FindKernel("main");
+
+					TerrainInitializator.SetBuffer(main, "_values", Values);
+					TerrainInitializator.SetFloat("_step", Step);
+					TerrainInitializator.SetFloat("_scale", Scale);
+					TerrainInitializator.SetFloat("_min", Min);
+					TerrainInitializator.SetFloat("_max", Max);
+					TerrainInitializator.SetFloat("_value", value);
+
+					var size = Size;
+					TerrainInitializator.Dispatch(main, size, (int)Math.Ceiling(height / Step) + 1, size);
+				}
+			}
+		}
+
 		public void Randomize(int layers)
 		{
 			lock (Sync)
